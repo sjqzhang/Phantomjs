@@ -75,7 +75,7 @@ var service = server.listen(port, function(request, response) {
     uri=request.url
 
 
-//    console.log(data)
+    console.log(uri)
 
 
 
@@ -93,9 +93,42 @@ var service = server.listen(port, function(request, response) {
 
 
 
-                 data= request.post
+                var data= request.post
+                 if(typeof(data)==='string'){
 
-                 JSON.stringify(data)
+					  try {
+
+                      //  console.log( obj2string( request.post))
+
+					  data={}
+
+
+                        
+                        var dr = request.post.split('&')
+                        console.log( dr.length)
+                        for (i = 0; i < dr.length; i++) {
+                            var kv = dr[i].split('=')
+                            console.log(kv)
+                            data[kv[0]] =decodeURIComponent(kv[1].replace(/\+/ig,' '))
+
+                        }
+
+                       // response.write(obj2string(data))
+                      //  response.close()
+
+            //            console.log(obj2string(data))
+
+                    }catch (er) {
+
+                        console.log("data tran",er)
+                    }
+				 
+				 }
+
+
+				
+
+                 
 
                 }catch (e) {
 
@@ -108,7 +141,7 @@ var service = server.listen(port, function(request, response) {
 
 
                         var dr = request.post.split('&')
-            //            console.log( dr.length)
+                        console.log( dr.length)
                         for (i = 0; i < dr.length; i++) {
                             var kv = dr[i].split('=')
                             console.log(kv)
@@ -136,13 +169,16 @@ var service = server.listen(port, function(request, response) {
 
             var page = require('webpage').create();
             page.onResourceRequested = function(requestData, networkRequest) {
-//                console.log(obj2string(requestData))
+               // console.log(obj2string(requestData))
+					 console.log(requestData.url)
              // console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
             };
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             var ajaxUrl = 'http://cdn.staticfile.org/jquery/2.0.3/jquery.min.js';
 
             console.log('start xxxxx')
+
+				 console.log('data==>',data)
 
             page.open(data['url'], function (status){
 
@@ -216,7 +252,7 @@ var service = server.listen(port, function(request, response) {
 
                       response.write(val)
                       response.close();
-                          page.close()
+                        //  page.close()
 
                       if(data['posturl']!==undefined) {
 
@@ -271,7 +307,7 @@ var service = server.listen(port, function(request, response) {
         }
 
     } else if (uri.indexOf('.js')>0) {
-          content= get_file_content(uri)
+          content= get_file_content(uri.substring(1,uri.length))
           response.write(content);
           response.close();
 
