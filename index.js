@@ -54,10 +54,9 @@ var  content=  fs.read(filename)
 
 var webserver = require('webserver');
 var server = webserver.create();
+ port=8080
 if( system.args.length ==2) {
     port= parseInt(system.args[1])
-
-
 }
 if (!port){
     port=8080
