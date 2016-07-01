@@ -91,7 +91,11 @@ var service = server.listen(port, function(request, response) {
                 var data={}
                 try {
 
-                 data= eval('('+request.post+')')
+
+
+                 data= request.post
+
+                 JSON.stringify(data)
 
                 }catch (e) {
 
@@ -99,7 +103,7 @@ var service = server.listen(port, function(request, response) {
 
                     try {
 
-                        //console.log(request.post)
+                      //  console.log( obj2string( request.post))
 
 
 
