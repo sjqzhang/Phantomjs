@@ -252,7 +252,7 @@ var service = server.listen(port, function(request, response) {
 
                       response.write(val)
                       response.close();
-                        //  page.close()
+                         page.close()
 
                       if(data['posturl']!==undefined) {
 
