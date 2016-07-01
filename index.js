@@ -67,7 +67,7 @@ if (!port){
 console.log('server port:'+port)
 
 
-var service = server.listen(8080, function(request, response) {
+var service = server.listen(port, function(request, response) {
 
 
 //	console.log(obj2string(request))
