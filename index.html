@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title></title>
+  <meta name="generator" content="editplus">
+  <meta name="author" content="">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <meta http-equiv=Content-Type content="text/html;charset=utf-8">
+
+<script src="jquery.js"></script>
+ 
+
+ <style>
+
+
+   #top {
+   
+     width:100%;
+   
+   }
+
+   #main {
+      width:100%;
+   }
+
+   #left {
+     float:left;
+	 width:49.5%;
+   }
+
+   #right {
+     float:right;
+	 width:49.5%;
+   }
+
+   #timeout {
+	width:50px;
+   }
+
+   #url,#posturl
+   {
+   overflow:hidden;
+	width:800px;
+	border:1px solid #ccc;
+
+     
+   }
+
+
+   #jscode,#result {
+	overflow-x:hidden;
+	width:100%;
+	border:1px solid #ccc;
+	min-height:650px;
+	height:100%;
+   }
+
+   
+   #right-top,#right-bottom {
+     
+	 height:49.5%;
+	 min-height:324px;
+   }
+    #right-top{
+	  
+	  
+	}
+
+	#iframe{
+	
+	  height:100%;
+	  width:100%;
+	   min-height:324px;
+	}
+
+ </style>
+
+
+ </head>
+
+
+ <body>
+
+
+ 
+<div id="top">
+     url:<input id="url"  type="text"/> <input value="Test" id="submit"  type="button"/> <input name="timeout" id="timeout" value="1000" title="timeout"/>
+	 <select name="type"> <option value="0">save cookie</option><option value="1">unsave cookie</option> </select>
+	  <input value="frame" id="sframe"  type="button"/>
+</div>
+
+
+<div id="main" >
+
+
+	<div id="left">
+
+		 <textarea id="jscode"     type="text"  ></textarea>
+	</div>
+
+
+
+	<div id="right">
+		<div id="right-top">
+			 <textarea id="result"  type="text"></textarea>
+		</div>
+		<div id="right-bottom" style="display:none;">
+			 <iframe id="iframe" ></iframe>
+		</div>
+	</div>
+
+
+   
+</div>
+
+<div id="bottom">
+    posturl:<input id="posturl"  type="text"/>
+</div>
+
+
+<script>
+$(document).ready(function(){
+
+
+$('#sframe').click(function(){
+
+  if ($('#right-bottom').is(':visible'))
+  {
+    $('#right-bottom').hide()
+	$('#right-top,#result').css({'min-height':'650px'})
+  } else {
+  $('#right-top,#result').css({'min-height':'324px'})
+     $('#right-bottom').show()
+  }
+})
+
+
+$('#submit').click(function(){
+    $('#submit').attr('disabled',true)
+
+    if ($('#right-bottom').is(':visible')) {
+		$('#iframe').attr('src',$('#url').val())
+	}
+
+	setTimeout(function(){
+	
+	$('#submit').attr('disabled',false)
+	
+	},6*1000)
+       $.post('/api/',{url:$('#url').val(),jscode:$('#jscode').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val()},function(data){
+	    $('#submit').attr('disabled',false)
+	  $('#result').val(data);
+	 
+	
+	})
+
+})
+    
+
+})
+
+</script>
+
+
+  
+ </body>
+</html>
