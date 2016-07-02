@@ -32,6 +32,29 @@ if(typeof o=="object"){
 return o.toString();
 }
 
+function waitFor(testFx, onReady, timeOutMillis) {
+    var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
+        start = new Date().getTime(),
+        condition = false,
+        interval = setInterval(function() {
+            if ( (new Date().getTime() - start < maxtimeOutMillis) && !condition ) {
+                // If not time-out yet and condition not yet fulfilled
+                condition = (typeof(testFx) === "string" ? eval(testFx) : testFx()); //< defensive code
+            } else {
+                if(!condition) {
+                    // If condition still not fulfilled (timeout but condition is 'false')
+                    console.log("'waitFor()' timeout");
+                   // phantom.exit(1);
+                } else {
+                    // Condition fulfilled (timeout and/or condition is 'true')
+                    console.log("'waitFor()' finished in " + (new Date().getTime() - start) + "ms.");
+                    typeof(onReady) === "string" ? eval(onReady) : onReady(); //< Do what it's supposed to do once the condition is fulfilled
+                    clearInterval(interval); //< Stop this interval
+                }
+            }
+        }, 250); //< repeat check every 250ms
+};
+
 
 
 var system = require('system');
@@ -173,6 +196,25 @@ var service = server.listen(port, function(request, response) {
 					 console.log(requestData.url)
              // console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
             };
+
+			page.onNavigationRequested = function(url, type, willNavigate, main) {
+			  console.log('Trying to navigate to: ' + url);
+			  console.log('Caused by: ' + type);
+			  console.log('Will actually navigate: ' + willNavigate);
+			  console.log('Sent from the page\'s main frame: ' + main);
+			}
+
+			page.onAlert = function(msg) {
+			  console.log('ALERT: ' + msg);
+			};
+			page.onCallback = function(data) {
+			  console.log('CALLBACK: ' + JSON.stringify(data));
+			  // Prints 'CALLBACK: { "hello": "world" }'
+			};
+			page.onUrlChanged = function(targetUrl) {
+			  console.log('New URL: ' + targetUrl);
+			};
+
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             var ajaxUrl = 'http://cdn.staticfile.org/jquery/2.0.3/jquery.min.js';
 
@@ -242,6 +284,8 @@ var service = server.listen(port, function(request, response) {
                                val=e
                            }
 
+							page.switchToFocusedFrame()
+
                           if(val==null) {
                               val=""
                           }
@@ -249,10 +293,16 @@ var service = server.listen(port, function(request, response) {
                               val=obj2string(val)
                           }
 
+                      if(data['jscode'].trim()=='') {
+						response.write(page.content)					
 
-                      response.write(val)
+					    
+					  } else {
+						 response.write(val)
+					  }
                       response.close();
-                         page.close()
+					  setTimeout(function() { page.close();console.log('close')},4000)
+                        
 
                       if(data['posturl']!==undefined) {
 
