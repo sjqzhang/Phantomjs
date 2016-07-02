@@ -87,6 +87,7 @@
 <div id="top">
      url:<input id="url"  type="text"/> <input value="Test" id="submit"  type="button"/> <input name="timeout" id="timeout" value="1000" title="timeout"/>
 	 <select name="type"> <option value="0">save cookie</option><option value="1">unsave cookie</option> </select>
+	 <input id="js" type="checkbox"  value="1"/>js
 	  <input value="frame" id="sframe"  type="button"/>
 </div>
 
@@ -148,7 +149,9 @@ $('#submit').click(function(){
 	$('#submit').attr('disabled',false)
 	
 	},6*1000)
-       $.post('/api/',{url:$('#url').val(),jscode:$('#jscode').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val()},function(data){
+
+       var js=$('#js').is(':checked')?1:0;
+       $.post('/api/',{url:$('#url').val(),jscode:$('#jscode').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val(),js:js},function(data){
 	    $('#submit').attr('disabled',false)
 	  $('#result').val(data);
 	 
