@@ -197,12 +197,36 @@ var service = server.listen(port, function(request, response) {
              // console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
             };
 
+            if (data['js']==0)
+            {
+		   
+				page.onResourceRequested = function(requestData, request) {
+
+					//console.log(data)
+					if ((/http:\/\/.+?\.css/gi).test(requestData['url']) || requestData.headers['Content-Type'] == 'text/css') {
+						//console.log('The url of the request is matching. Aborting: ' + requestData['url']);
+						request.abort();
+					}
+					if ((/http:\/\/.+?\.js/gi).test(requestData['url']) || requestData.headers['Content-Type'] == 'text/javascript') {
+						//console.log('The url of the request is matching. Aborting: ' + requestData['url']);
+						request.abort();
+					}
+					if ((/http:\/\/.+?\.(jpg|png|gif)/gi).test(requestData['url']) || requestData.headers['Content-Type'] == 'image/pjpeg' ||
+						 requestData.headers['Content-Type'] == 'image/gif'||requestData.headers['Content-Type'] == 'image/png') {
+						//console.log('The url of the request is matching. Aborting: ' + requestData['url']);
+						request.abort();
+					}
+				};
+			}
+
+            /*
 			page.onNavigationRequested = function(url, type, willNavigate, main) {
 			  console.log('Trying to navigate to: ' + url);
 			  console.log('Caused by: ' + type);
 			  console.log('Will actually navigate: ' + willNavigate);
 			  console.log('Sent from the page\'s main frame: ' + main);
 			}
+			*/
 
 			page.onAlert = function(msg) {
 			  console.log('ALERT: ' + msg);
@@ -304,7 +328,7 @@ var service = server.listen(port, function(request, response) {
 					  setTimeout(function() { page.close();console.log('close')},4000)
                         
 
-                      if(data['posturl']!==undefined) {
+                      if(data['posturl']!==undefined&&data['posturl']!='') {
 
 
 
@@ -321,7 +345,7 @@ var service = server.listen(port, function(request, response) {
                                 } else {
                                     console.log(server_post.content);
                                 }
-                               // server_post.close()
+                                server_post.close()
                             });
                      }
 
