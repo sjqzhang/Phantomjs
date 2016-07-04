@@ -325,7 +325,8 @@ var service = server.listen(port, function(request, response) {
 						 response.write(val)
 					  }
                       response.close();
-					  setTimeout(function() { page.close();console.log('close')},4000)
+					  page.close()
+					 // setTimeout(function() { page.close();console.log('close')},4000)
                         
 
                       if(data['posturl']!==undefined&&data['posturl']!='') {
