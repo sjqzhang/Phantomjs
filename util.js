@@ -1,9 +1,14 @@
+String.prototype.trim=function()
+{
+     return this.replace(/(^\s*)|(\s*$)/g,'');
+}
+
 function table_data(selector) {
 	var data = []
 	$('table tr', $(selector)).each(function() {
 		var row = []
 		$('td,th', $(this)).each(function() {
-			row.push($(this).text())
+			row.push($(this).text().trim())
 		})
 		data.push(row)
 	})
@@ -20,7 +25,7 @@ function href_data(selector) {
 	$('a', $(selector)).each(function() {
 
 		var href = $(this).attr('href');
-		var title = $(this).text()
+		var title = $(this).text().trim()
 		data.push({
 			href : href,
 			title : title
@@ -116,7 +121,73 @@ function heredoc(f){
     return hereDoc(f)
 }
 
-String.prototype.trim=function()
-{
-     return this.replace(/(^\s*)|(\s*$)/g,'');
+
+
+function loadScript(url) {
+    var script = document.createElement( 'script' );
+    script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  // ²»ÓÃ»º´æ
+    document.body.appendChild( script );
+  };
+
+
+function transaleurl() {
+
+    var urlparts = window.location
+    var baseurl = urlparts.protocol + '//' + urlparts.host
+    var idx = urlparts.pathname.lastIndexOf('/')
+    var relativeurl =baseurl+urlparts.pathname.substring(0, idx)
+    $('a').each(function() {
+        var href = $(this).attr('href')
+        if (href != undefined) {
+			href=href.trim()
+            if ( href.indexOf('http')==0 || href.indexOf('(') > 0 || href.indexOf('javascript')==0 || href.indexOf('//')==0 ) {
+               //
+            } else if (href.indexOf('/') == 0) {
+                 $(this).attr('href', baseurl + href)
+            } else {
+                $(this).attr('href', relativeurl + '/' + href)
+            }
+        }
+    })
+    $('img').each(function() {
+        var href = $(this).attr('src')
+        if (href != undefined) {
+			href=href.trim()
+            if ( href.indexOf('http')==0 || href.indexOf('(') > 0 || href.indexOf('javascript')==0 || href.indexOf('//')==0) {
+                //
+            } else if (href.indexOf('/') == 0) {
+				 $(this).attr('src', baseurl + href)
+            } else {
+                $(this).attr('src', relativeurl + '/' + href)
+            }
+        }
+    })
+
 }
+
+transaleurl()
+
+
+function waitFor(testFx, onReady, timeOutMillis) {
+    var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
+        start = new Date().getTime(),
+        condition = false,
+        interval = setInterval(function() {
+            if ( (new Date().getTime() - start < maxtimeOutMillis) && !condition ) {
+                // If not time-out yet and condition not yet fulfilled
+                condition = (typeof(testFx) === "string" ? eval(testFx) : testFx()); //< defensive code
+            } else {
+                if(!condition) {
+                    // If condition still not fulfilled (timeout but condition is 'false')
+                    console.log("'waitFor()' timeout");
+                   // phantom.exit(1);
+                } else {
+                    // Condition fulfilled (timeout and/or condition is 'true')
+                    console.log("'waitFor()' finished in " + (new Date().getTime() - start) + "ms.");
+                    typeof(onReady) === "string" ? eval(onReady) : onReady(); //< Do what it's supposed to do once the condition is fulfilled
+                    clearInterval(interval); //< Stop this interval
+                }
+            }
+        }, 250); //< repeat check every 250ms
+};
+

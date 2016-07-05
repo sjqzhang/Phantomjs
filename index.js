@@ -32,7 +32,7 @@ if(typeof o=="object"){
 return o.toString();
 }
 
-function waitFor(testFx, onReady, timeOutMillis) {
+function waitFor(testFx, onReady,onTimeout, timeOutMillis) {
     var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
         start = new Date().getTime(),
         condition = false,
@@ -44,6 +44,8 @@ function waitFor(testFx, onReady, timeOutMillis) {
                 if(!condition) {
                     // If condition still not fulfilled (timeout but condition is 'false')
                     console.log("'waitFor()' timeout");
+                     typeof(onTimeout) === "string" ? eval(onTimeout) : onTimeout();
+                     clearInterval(interval);
                    // phantom.exit(1);
                 } else {
                     // Condition fulfilled (timeout and/or condition is 'true')
@@ -73,6 +75,13 @@ var  content=  fs.read(filename)
 }
 
 
+function isEmptyObject( obj ) {
+		var name;
+		for ( name in obj ) {
+			return false;
+		}
+		return true;
+	}
 
 
 var webserver = require('webserver');
@@ -248,6 +257,18 @@ var service = server.listen(port, function(request, response) {
 
             page.open(data['url'], function (status){
 
+				/*
+
+				var cookies = page.cookies;
+  
+				  console.log('Listing cookies:');
+				  for(var i in cookies) {
+					 console.log( obj2string(cookies[i]))
+					console.log(cookies[i].name + '=' + cookies[i].value);
+				  }
+                */
+            
+
                if (status !== 'success') {
                   response.statusCode = 500;
                   response.write('errorxxx');
@@ -301,21 +322,50 @@ var service = server.listen(port, function(request, response) {
 //
 //                                 })
 
-                           try {
+//                           try {
+//
+//
+//
+//                               var val = page.evaluateJavaScript('function(){ window.phantomValue= eval(heredoc(window.phantomVar)); return window.phantomValue; }')
+//                           }catch (e) {
+//                               val=e
+//                           }
 
-                               var val = page.evaluateJavaScript('function(){ return eval(heredoc(window.phantomVar))}')
-                           }catch (e) {
-                               val=e
-                           }
+                      var val=''
 
-							page.switchToFocusedFrame()
+							 waitFor(function() {
+            // Check in the page if a specific element is now visible
+                        val = page.evaluateJavaScript('function(){ window.phantomValue= eval(heredoc(window.phantomVar)); return window.phantomValue; }')
+
+                                if( data['jscode'].trim()==''){
+                                    return true
+                                }
+
+                         if(isEmptyObject(val)){
+                             return false
+                         } else {
+                             return true;
+                         }
+
+        }, function() {
+
+				//page.switchToFocusedFrame()
 
                           if(val==null) {
                               val=""
                           }
                           if(typeof(val)==='object') {
-                              val=obj2string(val)
-                          }
+							  try
+							  {
+								val=JSON.stringify(val)
+							  }
+							  catch (e)
+							  {
+								  console.log(e)
+								  val=obj2string(val)
+							  }
+                              
+                          } 
 
                       if(data['jscode'].trim()=='') {
 						response.write(page.content)					
@@ -349,6 +399,33 @@ var service = server.listen(port, function(request, response) {
                                 server_post.close()
                             });
                      }
+           
+        },function(){
+                 if(data['jscode'].trim()=='') {
+						response.write(page.content)
+
+
+					  } else {
+                      if(typeof(val)==='object') {
+							  try
+							  {
+								val=JSON.stringify(val)
+							  }
+							  catch (e)
+							  {
+								  console.log(e)
+								  val=obj2string(val)
+							  }
+
+                          }
+						 response.write(val)
+					  }
+                      response.close();
+					  page.close()
+                          });
+
+
+						
 
                    }catch  (er) {
                        console.log("eval js",er)
