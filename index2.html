@@ -48,22 +48,21 @@
    }
 
 
-
-   .leftarea{
-   	overflow-x:hidden;
-	width:100%;
-	border:1px solid #ccc;
-	min-height:325px;
-	height:49%;
-	float:left;
-   }
-
-   #result {
+  #result {
 	overflow-x:hidden;
 	width:100%;
 	border:1px solid #ccc;
 	min-height:650px;
 	height:100%;
+   }
+
+   .leftarea{
+   	overflow-x:hidden;
+	width:100%;
+	border:1px solid #ccc;
+	min-height:216px;
+	height:49%;
+	float:left;
    }
 
    
@@ -95,10 +94,18 @@
 
  
 <div id="top">
-     url:<input id="url"  type="text"/> <input value="Test" id="submit"  type="button"/> <input name="timeout" id="timeout" value="1000" title="timeout"/>
+     url:<input id="url"  type="text"/> <input value="Test" id="submit"  type="button"/><input value="BuildRequest" id="bntBuildRequest"  type="button"/>
+
+	 
+	 <div style="display:none;">
+	 <input name="timeout" id="timeout" value="1000" title="timeout"/>
 	 <select name="type"> <option value="0">save cookie</option><option value="1">unsave cookie</option> </select>
-	 <input id="js" type="checkbox"  value="1"/>js
+
+           <input id="js" type="checkbox"  value="1"/>js
+
 	  <input value="frame" id="sframe"  type="button"/>
+
+	  </div>
 </div>
 
 
@@ -106,11 +113,9 @@
 
 
 	<div id="left">
-
-
-	  <textarea id="page"  class="leftarea"   type="text"  title="page" ></textarea>
-
-		 <textarea id="jscode"  class="leftarea"    type="text" title="jscode"  ></textarea>
+		 <textarea id="header"  class="leftarea"   type="text"  title="header" ></textarea>
+		 <textarea id="body"   class="leftarea"    type="text" title="data"  ></textarea>
+        <textarea id="jscode"  class="leftarea"   type="text"  title="jscode" ></textarea>
 	</div>
 
 
@@ -150,21 +155,11 @@ $('#sframe').click(function(){
 })
 
 
-$('#submit').click(function(){
-    $('#submit').attr('disabled',true)
+$('#bntBuildRequest').click(function(){
 
-    if ($('#right-bottom').is(':visible')) {
-		$('#iframe').attr('src',$('#url').val())
-	}
-
-	setTimeout(function(){
-	
-	$('#submit').attr('disabled',false)
-	
-	},6*1000)
 
        var js=$('#js').is(':checked')?1:0;
-       $.post('/api/',{url:$('#url').val(),jscode:$('#jscode').val(),page:$('#page').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val(),js:js},function(data){
+       $.post('/api/buildRequest',{url:$('#url').val(),header:$('#header').val(),jscode:$('#jscode').val(),body:$('#body').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val(),js:js},function(data){
 	    $('#submit').attr('disabled',false)
 	  $('#result').val(data);
 	 
@@ -172,7 +167,31 @@ $('#submit').click(function(){
 	})
 
 })
-    
+
+
+    $('#submit').click(function(){
+    $('#submit').attr('disabled',true)
+
+    if ($('#right-bottom').is(':visible')) {
+		$('#iframe').attr('src',$('#url').val())
+	}
+
+	setTimeout(function(){
+
+	$('#submit').attr('disabled',false)
+
+	},6*1000)
+
+       var js=$('#js').is(':checked')?1:0;
+       $.post('/api/request',{url:$('#url').val(),header:$('#header').val(),jscode:$('#jscode').val(),body:$('#body').val(),timeout:$('#timeout').val(),posturl:$('#posturl').val(),js:js},function(data){
+	    $('#submit').attr('disabled',false)
+	  $('#result').val(data);
+
+
+	})
+
+})
+
 
 })
 
