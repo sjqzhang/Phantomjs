@@ -55,6 +55,7 @@ class KanKanDou(object):
              # d['site']='KanKanDou'
                 d['status']='0'
                 ci.db.insert('files',d)
+                ci.update('urls',{'status':1}, {'href':row['href']})
 
 
 
