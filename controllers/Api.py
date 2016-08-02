@@ -80,7 +80,7 @@ requests.post('http://127.0.0.1:8005/api/request',data).text
 
         posturl=req.params.get('posturl','')
         if posturl!='' and jscode!='':
-            rd={'page':unicode.encode(content,'utf-8','ignore'),'jscode':jscode,'js':1,'url':'chrome://version/'}
+            rd={'page':unicode.encode(content,'utf-8','ignore'),'jscode':jscode,'js':1,'url':url}
             content=ci.request(posturl,rd)
 
         resp.body=content

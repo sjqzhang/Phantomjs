@@ -144,12 +144,19 @@ function(request, response) {
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             console.log('start xxxxx');
             console.log('data==>', data['jscode']);
-            page.open(data['url'],
-            function(status) {
 
-                spider(page, request, response, data, status)
+            if (data['page']!==undefined&&data['page'].trim()!=''){
+                     page.content=data['page']
+                     spider(page, request, response, data, status)
+             } else {
 
-            });
+                page.open(data['url'],
+                    function (status) {
+
+                        spider(page, request, response, data, status)
+
+                    });
+            }
         } catch(er) {
             console.log('page open', er);
             response.statusCode = 500;
@@ -174,11 +181,25 @@ function spider(page, request, response, data, status) {
         response.close();
         console.log('Unable to access the website')
     } else {
-        if (data['page']!==undefined&&data['page'].trim()!=''){
+
+
+         if (data['page']!==undefined&&data['page'].trim()!=''){
             page.content=data['page']
+             console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+          //  page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
         }
         page.injectJs('jquery.js');
         page.injectJs('util.js');
+
+        console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxx',data['url'])
+        page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
+
+        if (data['page']!==undefined&&data['page'].trim()!=''){
+            page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
+        } else {
+           page.evaluateJavaScript('function() { transaleurl() }  ')
+        }
+
         try {
             response.statusCode = 200;
             var script1 = 'function(){ window.phantomVar=function  __jscode__(){/*' + data['jscode'] + '*/}}';

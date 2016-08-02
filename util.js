@@ -125,14 +125,54 @@ function heredoc(f){
 
 function loadScript(url) {
     var script = document.createElement( 'script' );
-    script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  // ≤ª”√ª∫¥Ê
+    script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
     document.body.appendChild( script );
   };
 
+  
+function parseURL(url) {
+    var a = document.createElement('a');
+    a.href = url;
+    return {
+        source: url,
+        protocol: a.protocol,
+        hostname: a.hostname,
+		host: a.host,
+        port: a.port,
+        query: a.search,
+		search: a.search,
+        params: (function() {
+            var ret = {},
+            seg = a.search.replace(/^\?/, '').split('&'),
+            len = seg.length,
+            i = 0,
+            s;
+            for (; i < len; i++) {
+                if (!seg[i]) {
+                    continue;
+                }
+                s = seg[i].split('=');
+                ret[s[0]] = s[1];
+            }
+            return ret;
+        })(),
+		pathname:a.pathname,
+        file: (a.pathname.match(/\/([^\/?#]+)$/i) || [, ''])[1],
+        hash: a.hash.replace('#', ''),
+        path: a.pathname.replace(/^([^\/])/, '/$1'),
+        relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [, ''])[1],
+        segments: a.pathname.replace(/^\//, '').split('/')
+    };
+}
 
-function transaleurl() {
+function transaleurl(url) {
 
-    var urlparts = window.location
+    if (url===undefined){
+        url=window.location.href
+    }
+
+//    var urlparts = window.location
+    var urlparts = parseURL(url)
     var baseurl = urlparts.protocol + '//' + urlparts.host
     var idx = urlparts.pathname.lastIndexOf('/')
     var relativeurl =baseurl+urlparts.pathname.substring(0, idx)
@@ -140,6 +180,7 @@ function transaleurl() {
         var href = $(this).attr('href')
         if (href != undefined) {
 			href=href.trim()
+			href=href.replace('about://','')
             if ( href.indexOf('http')==0 || href.indexOf('(') > 0 || href.indexOf('javascript')==0 || href.indexOf('//')==0 ) {
                //
             } else if (href.indexOf('/') == 0) {
@@ -153,6 +194,7 @@ function transaleurl() {
         var href = $(this).attr('src')
         if (href != undefined) {
 			href=href.trim()
+			href=href.replace('about://','')
             if ( href.indexOf('http')==0 || href.indexOf('(') > 0 || href.indexOf('javascript')==0 || href.indexOf('//')==0) {
                 //
             } else if (href.indexOf('/') == 0) {
@@ -165,7 +207,7 @@ function transaleurl() {
 
 }
 
-transaleurl()
+//transaleurl()
 
 
 function waitFor(testFx, onReady, timeOutMillis) {
