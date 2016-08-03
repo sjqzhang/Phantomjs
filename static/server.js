@@ -26,14 +26,27 @@ function tpl_replace(str,data){
 
 function _PYTHON_REQUEST(){
 /*
-import requests
-url='''{url}'''
-header='''{header}'''
-body='''{body}'''
-jscode='''{jscode}'''
-posturl='''{posturl}'''#js server phantomjs
-data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
-requests.post('http://127.0.0.1:8080/api/request',data).text
+for i in range(0,1):
+    try:
+        import requests
+        import json
+        url='''{url}'''
+        header='''{header}'''
+        body='''{body}'''
+        jscode='''{jscode}'''
+        posturl='''{posturl}'''#js server phantomjs
+        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
+        jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
+        jdata=json.loads(jdata)
+        for d in jdata:
+            d['site']='KanKanDou'
+            d['status']='0'
+            d['level']='1'
+            print d
+            #ci.db.insert('urls',d)
+    except Exception as er:
+        pass
+        #ci.logger.error(er)
 */
 }
 
