@@ -270,6 +270,10 @@ function(request, response) {
                     header= get_kv( build_header( data['header']))
                 }
 
+                if(!isEmpty(header)){
+                    page.customHeaders=header
+                }
+
                 if(body.trim()!=''){
                     page.open(data['url'],'POST',body,
                     function (status) {
