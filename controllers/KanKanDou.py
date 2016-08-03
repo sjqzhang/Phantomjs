@@ -14,14 +14,14 @@ class KanKanDou(object):
     def init(self,req,resp):
         import gevent
         jobs=[]
-        for i in range(0,40):
+        for i in range(0,60):
             jobs.append(gevent.spawn(self.get_urls))
-        for i in range(1,404):
+        for i in range(2,404):
             self._queue.put(i)
         gevent.joinall(jobs)
 
 
-    def get_urls(self,req,resp):
+    def get_urls(self):
         while True:
             import requests
             import json
@@ -35,7 +35,7 @@ class KanKanDou(object):
                         body=''''''
                         jscode='''href_data('.list .o-name ')'''
                         posturl=''''''#js server phantomjs
-                        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
+                        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':0}
                         jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
                         jdata=json.loads(jdata)
                         for d in jdata:
