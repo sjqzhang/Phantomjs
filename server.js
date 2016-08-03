@@ -5,6 +5,38 @@ String.prototype.trim=function()
 {
      return this.replace(/(^\s*)|(\s*$)/g,'');
 }
+
+function isEmpty(e) {
+    var t;
+    for (t in e)
+        return !1;
+    return !0
+}
+
+
+
+function tpl_replace(str,data){
+    var tpl=str
+    for(var key in data){
+        tpl=tpl.replace('{'+key+'}',data[key])
+    }
+    return tpl
+}
+
+
+function _PYTHON_REQUEST(){
+/*
+import requests
+url='''{url}'''
+header='''{header}'''
+body='''{body}'''
+jscode='''{jscode}'''
+posturl='''{posturl}'''#js server phantomjs
+data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
+requests.post('http://127.0.0.1:8080/api/request',data).text
+*/
+}
+
 function obj2string(o) {
     var r = [];
     if (typeof o == "string") {
@@ -31,6 +63,52 @@ function obj2string(o) {
         return r
     }
     return o.toString()
+}
+
+function build_header(str){
+    if(str==undefined){
+       return []
+    }
+    var header=[];
+    var lines= str.split(/\n/);
+    for(var i=0;i<lines.length;i++){
+        var line=lines[i];
+        if(line.trim()!=''){
+            var pos= line.indexOf(':');
+            if(pos!=-1){
+                var key=line.substring(0,pos).trim()
+                var value=line.substring(pos+1,line.length).trim()
+                header.push({'key':key,'value':value})
+            }
+        }
+    }
+    return header;
+}
+
+function get_kv(items){
+   var kv={}
+    for(var i=0;i<items.length;i++){
+          var item=items[i];
+          kv[item['key']]=item['value'];
+    }
+    return kv;
+}
+
+
+function build_data(str) {
+    var data=[];
+    if(str==undefined){
+        return data
+    }
+    var values=str.split('&');
+    for(var i=0;i<values.length;i++) {
+        var value=values[i];
+        var kvs=value.split('=')
+        if(kvs.length==2){
+            data.push({'key':kvs[0],'value':decodeURIComponent(kvs[1])})
+        }
+    }
+    return data
 }
 function waitFor(testFx, onReady, onTimeout, timeOutMillis) {
     var maxtimeOutMillis = timeOutMillis ? timeOutMillis: 3000,
@@ -82,7 +160,8 @@ function(request, response) {
     console.log(uri);
     var content = '';
     response.statusCode = 200;
-    if (uri == '/api' || uri == '/api/') {
+
+    if (uri == '/api' || uri == '/api/' || uri.indexOf('/api/')!=-1) {
         try {
             var data = {}
             try {
@@ -115,6 +194,18 @@ function(request, response) {
                     console.log("data tran", er)
                 }
             }
+
+            console.log('post_data_all=>',obj2string(data))
+
+            if(uri.indexOf('/api/buildRequest')!=-1){
+
+                var tpl= hereDoc(_PYTHON_REQUEST);
+                content=tpl_replace(tpl,data);
+                response.write(content);
+                response.close();
+                return;
+            }
+
             var page = require('webpage').create();
             page.onResourceRequested = function(requestData, networkRequest) {
                 console.log(requestData.url)
@@ -143,19 +234,42 @@ function(request, response) {
             };
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             console.log('start xxxxx');
-            console.log('data==>', data['jscode']);
+            console.log('jscode==>', data['jscode']);
 
             if (data['page']!==undefined&&data['page'].trim()!=''){
                      page.content=data['page']
                      spider(page, request, response, data, status)
              } else {
 
-                page.open(data['url'],
+
+                var header={}
+                var body=''
+                if(data['body']!=undefined&&(body==undefined||isEmpty(body))){
+
+//                    body= get_kv( build_header( data['body']))
+//                    if(isEmpty(body)) {
+//                        console.log('undefine xxxxxxxxxxxxxxxxxxx')
+//                        body = get_kv(build_data(data['body'].replace(/\n/g, '')))
+//                    }
+                    body=data['body'].replace(/\n/g, '')
+                }
+                if(data['header']!=undefined&&(header==undefined||isEmpty(header))){
+                    header= get_kv( build_header( data['header']))
+                }
+
+                if(body.trim()!=''){
+                    page.open(data['url'],'POST',body,
                     function (status) {
-
                         spider(page, request, response, data, status)
-
                     });
+
+                } else {
+                    page.open(data['url'],
+                    function (status) {
+                        spider(page, request, response, data, status)
+                    });
+                }
+
             }
         } catch(er) {
             console.log('page open', er);
