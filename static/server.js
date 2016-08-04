@@ -259,12 +259,25 @@ function(request, response) {
                 var body=''
                 if(data['body']!=undefined&&(body==undefined||isEmpty(body))){
 
-//                    body= get_kv( build_header( data['body']))
-//                    if(isEmpty(body)) {
-//                        console.log('undefine xxxxxxxxxxxxxxxxxxx')
-//                        body = get_kv(build_data(data['body'].replace(/\n/g, '')))
-//                    }
-                    body=data['body'].replace(/\n/g, '')
+                    body= get_kv( build_header( data['body']))
+                    if(isEmpty(body)) {
+                        console.log('undefine xxxxxxxxxxxxxxxxxxx')
+                        body = get_kv(build_data(data['body'].replace(/\n/g, '')))
+                    }
+                    if(!isEmpty(body)){
+                        console.log('body==>',obj2string(body))
+                        postdata=''
+                        for(k in body ){
+                            postdata+=k+ '='+ encodeURIComponent(body[k])+'&'
+                        }
+                        if(postdata.length>0){
+                            body=postdata.substring(0,postdata.length-1)
+                        }
+
+
+                    } else {
+                        body = data['body'].replace(/\n/g, '')
+                    }
                 }
                 if(data['header']!=undefined&&(header==undefined||isEmpty(header))){
                     header= get_kv( build_header( data['header']))
@@ -275,6 +288,7 @@ function(request, response) {
                 }
 
                 if(body.trim()!=''){
+
                     page.open(data['url'],'POST',body,
                     function (status) {
                         spider(page, request, response, data, status)
