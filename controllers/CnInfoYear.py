@@ -37,7 +37,7 @@ class CnInfoYear(object):
         import gevent
         jobs=[]
         queue=Queue.Queue(10000)
-        for i in range(1,6200):
+        for i in range(1,300):
             queue.put(i)
         for i in range(0,20):
             jobs.append(gevent.spawn(self._get_urls,queue))
@@ -87,23 +87,21 @@ class CnInfoYear(object):
                         import json
                         url='''http://www.cninfo.com.cn/cninfo-new/announcement/query'''
                         header=''''''
-                        body='''stock=
-                        searchkey=
-                        plate=
-                        category=category_ndbg_jjgg;
-                        trade=
-                        column=fund
-                        columnTitle=历史公告查询
-                        pageNum=%s
-                        pageSize=30
-                        tabName=fulltext
-                        sortName=
-                        sortType=
-                        limit=
-                        showTitle=category_ndbg_jjgg/category/年度报告
-                        exchange=
-                        fundtype=
-                        seDate=请选择日期'''%(i)
+                        body='''category=category_ndbg_szsh;
+                            column=szse
+                            columnTitle=历史公告查询
+                            limit=
+                            pageNum=%s
+                            pageSize=30
+                            plate=
+                            seDate=请选择日期
+                            searchkey=
+                            showTitle=category_ndbg_szsh/category/年度报告
+                            sortName=
+                            sortType=
+                            stock=
+                            tabName=fulltext
+                            trade='''%(i)
                         jscode='''$('body').text()'''
                         posturl=''''''#js server phantomjs
                         data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
@@ -116,6 +114,7 @@ class CnInfoYear(object):
                             # d['level']='1'
                             dd['title']=d['secName']+'_'+d['announcementTitle']
                             dd['href']='http://www.cninfo.com.cn/'+d['adjunctUrl']
+                            dd['ftype']=d['secCode']
                             ci.db.insert('files',dd)
                             # print dd
                     except Exception as er:
@@ -208,7 +207,8 @@ class CnInfoYear(object):
                 row=queue.get()
                 try:
                     r = requests.get(row['href'], stream=True)
-                    with open("I:/CnInfoYear/"+ row['title']+'.pdf', 'wb') as f:
+                    print("正在下载","I:/CnInfoYear/"+ row['title']+'.pdf')
+                    with open("I:/CnInfoYear/"+ row['title']+'[%s]'%(row['ftype']) +'.pdf', 'wb') as f:
                         for chunk in r.iter_content(chunk_size=1024):
                             if chunk: # filter out keep-alive new chunks
                                 f.write(chunk)
