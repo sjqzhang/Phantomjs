@@ -23,7 +23,7 @@ import inspect
 def __name__():
     return inspect.stack()[1][3]
 
-class KanCloud(object):
+class CnInfoYear(object):
 
     def __init__(self):
         self.tasks={}
@@ -37,7 +37,7 @@ class KanCloud(object):
         import gevent
         jobs=[]
         queue=Queue.Queue(10000)
-        for i in range(2,404):
+        for i in range(1,6200):
             queue.put(i)
         for i in range(0,20):
             jobs.append(gevent.spawn(self._get_urls,queue))
@@ -54,7 +54,7 @@ class KanCloud(object):
         queue=Queue.Queue(1000000)
         for i in range(0,20):
             jobs.append(gevent.spawn(self._get_details,queue))
-        rows= ci.db.query("select * from urls where status=0 and site='KanCloud'")
+        rows= ci.db.query("select * from urls where status=0 and site='CnInfoYear'")
         for row in rows:
             queue.put(row)
         gevent.joinall(jobs)
@@ -66,7 +66,7 @@ class KanCloud(object):
             self.tasks[__name__()]=__name__()
         import gevent
         queue=Queue.Queue(1000000)
-        rows= ci.db.query("select * from files where status=0 and site='KanCloud'")
+        rows= ci.db.query("select * from files where status=0 and site='CnInfoYear'")
         for row in rows:
             queue.put(row)
         jobs=[]
@@ -84,21 +84,44 @@ class KanCloud(object):
                 if i!=None:
                     try:
                         import requests
-                        url='''http://www.kancloud.cn/explore?page=%s'''%(i)
+                        import json
+                        url='''http://www.cninfo.com.cn/cninfo-new/announcement/query'''
                         header=''''''
-                        body=''''''
-                        jscode='''href_data('.m-manual-list dd')'''
+                        body='''stock=
+                        searchkey=
+                        plate=
+                        category=category_ndbg_jjgg;
+                        trade=
+                        column=fund
+                        columnTitle=历史公告查询
+                        pageNum=%s
+                        pageSize=30
+                        tabName=fulltext
+                        sortName=
+                        sortType=
+                        limit=
+                        showTitle=category_ndbg_jjgg/category/年度报告
+                        exchange=
+                        fundtype=
+                        seDate=请选择日期'''%(i)
+                        jscode='''$('body').text()'''
                         posturl=''''''#js server phantomjs
-                        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':0}
+                        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
                         jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
-                        jdata=json.loads(jdata)
+                        jdata=json.loads(jdata)['announcements']
+                        dd={}
                         for d in jdata:
-                            d['site']='KanCloud'
-                            d['status']='0'
-                            d['level']='1'
-                            ci.db.insert('urls',d)
+                            dd['site']='CnInfoYear'
+                            dd['status']='0'
+                            # d['level']='1'
+                            dd['title']=d['secName']+'_'+d['announcementTitle']
+                            dd['href']='http://www.cninfo.com.cn/'+d['adjunctUrl']
+                            ci.db.insert('files',dd)
+                            # print dd
                     except Exception as er:
-                        ci.logger.error(er)
+                        print(er)
+
+
                 else:
                     break
             except Exception as er:
@@ -159,7 +182,7 @@ class KanCloud(object):
                             d['title']=jdata['config']['bookTitle']
                             d['href']= jdata['config']['bookId']
                             d['ftype']=','.join(jdata['filetype'])
-                            d['site']='KanCloud'
+                            d['site']='CnInfoYear'
                             d['status']='0'
                             ci.db.insert('files',d)
                             ci.db.update('urls',{'status':1}, {'href':row['href']})
@@ -184,28 +207,14 @@ class KanCloud(object):
             try:
                 row=queue.get()
                 try:
-                    # book_id=8594&type=mobi
-                    ftype=row['ftype']
-                    ftypes=[]
-                    if ftype==None or ftype=='':
-                        continue
-                    else:
-                        ftypes=ftype.split(',')
-
-                    book_id=row['href']
-
-                    for type in ftypes:
-
-                        url=requests.post('http://www.kancloud.cn/book/export/download',data={'book_id':book_id,'type':type}).text
-                        url=json.loads(url)['url']
-                        r = requests.get(url, stream=True)
-                        with open("H:/KanCloud/"+ row['title']+'.'+type, 'wb') as f:
-                            for chunk in r.iter_content(chunk_size=1024):
-                                if chunk: # filter out keep-alive new chunks
-                                    f.write(chunk)
-                                    f.flush()
-                            f.close()
-                        ci.db.update('files',{'status':1}, {'href':row['href']})
+                    r = requests.get(row['href'], stream=True)
+                    with open("I:/CnInfoYear/"+ row['title']+'.pdf', 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            if chunk: # filter out keep-alive new chunks
+                                f.write(chunk)
+                                f.flush()
+                        f.close()
+                    ci.db.update('files',{'status':1}, {'href':row['href']})
                 except Exception as er:
                     pass
                     ci.logger.error(er)

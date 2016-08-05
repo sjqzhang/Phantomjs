@@ -1,4 +1,7 @@
-__author__ = 'Administrator'
+#!/usr/bin/env python
+# -*- coding:utf8 -*-
+__author__ = 'xiaozhang'
+
 
 
 from codeigniter import ci
