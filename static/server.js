@@ -78,8 +78,33 @@ function obj2string(o) {
     return o.toString()
 }
 
-function build_header(str){
+
+function valid_head(str){
     if(str==undefined){
+      return false;
+    } else {
+        check=function(str,sep) {
+            var lines = str.split(/\n/);
+            var flag = true;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (line.trim() != '') {
+                    var pos = line.indexOf(sep);
+                    if (pos == -1) {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+            return flag
+        }
+        return check(str,':')||check(str,'=')
+    }
+
+}
+
+function build_header(str){
+    if(str==undefined||!valid_head(str)){
        return []
     }
     var header=[];
@@ -87,7 +112,7 @@ function build_header(str){
     for(var i=0;i<lines.length;i++){
         var line=lines[i];
         if(line.trim()!=''){
-            var pos= line.indexOf(':');
+            var pos= line.indexOf(':')>0?line.indexOf(':'):line.indexOf('=');
             if(pos!=-1){
                 var key=line.substring(0,pos).trim()
                 var value=line.substring(pos+1,line.length).trim()

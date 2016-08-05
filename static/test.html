@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title></title>
+  <meta name="generator" content="editplus">
+  <meta name="author" content="">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <meta http-equiv=Content-Type content="text/html;charset=utf-8">
+
+<script src="jquery.js"></script>
+<script src="util.js"></script>
+
+<body>
+
+
+
+  
+ </body>
+
+<script>
+
+    function hereDoc(f) {
+    return f.toString().replace(/^[^\/]+\/\*!?/, '').replace(/\*\/[^\/]+$/, '')
+}
+String.prototype.trim=function()
+{
+     return this.replace(/(^\s*)|(\s*$)/g,'');
+}
+
+function isEmpty(e) {
+    var t;
+    for (t in e)
+        return !1;
+    return !0
+}
+
+
+
+function tpl_replace(str,data){
+    var tpl=str
+    for(var key in data){
+        tpl=tpl.replace('{'+key+'}',data[key])
+    }
+    return tpl
+}
+
+
+function _PYTHON_REQUEST(){
+/*
+for i in range(0,1):
+    try:
+        import requests
+        import json
+        url='''{url}'''
+        header='''{header}'''
+        body='''{body}'''
+        jscode='''{jscode}'''
+        posturl='''{posturl}'''#js server phantomjs
+        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
+        jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
+        jdata=json.loads(jdata)
+        for d in jdata:
+            d['site']='KanKanDou'
+            d['status']='0'
+            d['level']='1'
+            print d
+            #ci.db.insert('urls',d)
+    except Exception as er:
+        pass
+        #ci.logger.error(er)
+*/
+}
+
+function obj2string(o) {
+    var r = [];
+    if (typeof o == "string") {
+        return "\"" + o.replace(/([\'\"\\])/g, "\\$1").replace(/(\n)/g, "\\n").replace(/(\r)/g, "\\r").replace(/(\t)/g, "\\t") + "\""
+    }
+    if (typeof o == "object") {
+        if (o == null) {
+            return 'null'
+        }
+        if (!o.sort) {
+            for (var i in o) {
+                r.push(i + ":" + obj2string(o[i]))
+            }
+            if ( !! document.all && !/^\n?function\s*toString\(\)\s*\{\n?\s*\[native code\]\n?\s*\}\n?\s*$/.test(o.toString)) {
+                r.push("toString:" + o.toString.toString())
+            }
+            r = "{" + r.join() + "}"
+        } else {
+            for (var i = 0; i < o.length; i++) {
+                r.push(obj2string(o[i]))
+            }
+            r = "[" + r.join() + "]"
+        }
+        return r
+    }
+    return o.toString()
+}
+
+
+function valid_head(str){
+    if(str==undefined){
+      return false;
+    } else {
+        check=function(str,sep) {
+            var lines = str.split(/\n/);
+            var flag = true;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (line.trim() != '') {
+                    var pos = line.indexOf(sep);
+                    if (pos == -1) {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+            return flag
+        }
+        return check(str,':')||check(str,'=')
+    }
+
+}
+
+function build_header(str){
+    if(str==undefined||!valid_head(str)){
+       return []
+    }
+    var header=[];
+    var lines= str.split(/\n/);
+    for(var i=0;i<lines.length;i++){
+        var line=lines[i];
+        if(line.trim()!=''){
+            var pos= line.indexOf(':')>0?line.indexOf(':'):line.indexOf('=');
+            if(pos!=-1){
+                var key=line.substring(0,pos).trim()
+                var value=line.substring(pos+1,line.length).trim()
+                header.push({'key':key,'value':value})
+            }
+        }
+    }
+    return header;
+}
+
+function get_kv(items){
+   var kv={}
+    for(var i=0;i<items.length;i++){
+          var item=items[i];
+          kv[item['key']]=item['value'];
+    }
+    return kv;
+}
+
+
+function build_data(str) {
+    var data=[];
+    if(str==undefined){
+        return data
+    }
+    var values=str.split('&');
+    for(var i=0;i<values.length;i++) {
+        var value=values[i];
+        var kvs=value.split('=')
+        if(kvs.length==2){
+            data.push({'key':kvs[0],'value':decodeURIComponent(kvs[1])})
+        }
+    }
+    return data
+}
+
+
+function aa(){
+/*
+stock=
+searchkey=
+plate=
+category=category_ndbg_jjgg;
+trade=
+column=fund
+columnTitle=历史公告查询
+pageNum=1
+pageSize=30
+tabName=fulltext
+sortName=
+sortType=
+limit=
+showTitle=category_ndbg_jjgg/category/年度报告
+exchange=
+fundtype=
+seDate=请选择日期
+
+*/
+}
+
+
+build_header(hereDoc(aa))
+
+
+</script>
+</html>
