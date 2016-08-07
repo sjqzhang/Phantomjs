@@ -81,23 +81,44 @@ class JRJ(object):
             try:
                 import requests
                 import json
-                url='''http://v.jrj.com.cn/newlist2015/tzwsp_46.shtml'''
+                url='''http://v.jrj.com.cn/newlist2015/tzwsp_all-1.shtml'''
                 header=''''''
                 body=''''''
-                jscode='''href_data('ul:gt(0)')'''
+                jscode='''l=[]
+        level=''
+        $('h3,ul','li').each(function(i){
+
+        if(i%2==0) {
+           level=$(this).text().trim()
+        } else {
+           items=href_data($(this))
+           for(var j=0;j<items.length;j++) {
+             items[j]['level']=level
+          }
+          l.push(items)
+        }
+
+
+
+        })
+
+        l'''
                 posturl='''http://127.0.0.1:8080/api/'''#js server phantomjs
                 data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
                 jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
                 jdata=json.loads(jdata)
-                for d in jdata:
-                    d['site']='JRJ'
-                    d['status']='0'
-                    d['level']='1'
-                    # print d
-                    ci.db.insert('urls',d)
+                for l in jdata:
+                    for d in l:
+                        d['site']='JRJ'
+                        d['status']='0'
+                        # d['level']='1'
+                        print d
+                        ci.db.insert('urls',d)
             except Exception as er:
+                print(er)
                 pass
                 #ci.logger.error(er)
+
 
 
     def _get_details(self,queue):
@@ -119,13 +140,13 @@ class JRJ(object):
                             body=''''''
                             jscode='''videoURL'''
                             posturl=''''''#js server phantomjs
-                            data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl}
+                            data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':'0'}
                             jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
                             # jdata=json.loads(jdata)
                             d={}
                             d['href']= jdata
                             d['title']= row['title']
-                            d['ftype']=''
+                            d['ftype']=row['level']
                             d['site']='JRJ'
                             d['status']='0'
                             ci.db.insert('files',d)
@@ -142,18 +163,28 @@ class JRJ(object):
                 pass
 
 
+    def filename(self,fn=''):
+        s=r'\\|"/:;?*&^%!~+=,'
+        for i in s:
+            fn=fn.replace(i,'')
+        return fn
 
     def _download_files(self,queue):
         import time
         import requests
         import json
+        import os
         while True:
             try:
                 row=queue.get()
                 try:
                     r = requests.get(row['href'], stream=True)
                     # print("正在下载","I:/JRJ/"+ row['title']+'.pdf')
-                    with open("e:/jrj/"+ row['title'] +'.mp4', 'wb') as f:
+                    p='E:/jrj/'
+                    d= p+ self.filename( row['ftype'])
+                    if not os.path.isdir(d):
+                        os.mkdir(d)
+                    with open(d+'/'+ self.filename(row['title']) +'.mp4', 'wb') as f:
                         for chunk in r.iter_content(chunk_size=1024):
                             if chunk: # filter out keep-alive new chunks
                                 f.write(chunk)
