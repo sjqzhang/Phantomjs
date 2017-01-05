@@ -307,10 +307,34 @@ function(request, response) {
                 if(data['header']!=undefined&&(header==undefined||isEmpty(header))){
                     header= get_kv( build_header( data['header']))
                 }
+					console.log("header==>",obj2string(header))
 
                 if(!isEmpty(header)){
                     page.customHeaders=header
+					var cookies=header['Cookie']||header['cookie']
+					try{
+						var cc=cookies.split(';')
+						for(var i in cc) {
+							var kv=cc[i].split('=')
+							if(kv.length>1) {
+								page.addCookie({
+								  'name'     : kv[0],   /* required property */
+								  'value'    : kv[1],  /* required property */
+								  //'domain'   : 'localhost',
+								  'path'     : '/',                /* required property */
+								  'httponly' : true,
+								  //'secure'   : false,
+								  'expires'  : (new Date()).getTime() + (1000 * 60 * 60)   /* <-- expires in 1 hour */
+								});
+							}
+						}
+					} catch(e) {
+						
+						console.log(e)
+					}
                 }
+				
+
 
                 if(body.trim()!=''){
 
