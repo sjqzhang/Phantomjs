@@ -1,0 +1,178 @@
+#!/usr/bin/env python
+# -*- coding:utf8 -*-
+__author__ = 'xiaozhang'
+
+
+
+from codeigniter import ci
+
+
+import Queue
+'''
+
+# step one: get_urls
+# step two: get_details
+# step three: download_files
+
+
+
+'''
+
+import inspect
+
+def __name__():
+    return inspect.stack()[1][3]
+
+class Article(object):
+
+    def __init__(self):
+        self.tasks={}
+        self.site_name='3kkbb'
+        self.page_url='http://www.3kkbb.net/art/article/index-%s.html'
+        self.pages=[2,10]
+        self.cookie=''
+        self.selector_one="href_data('.zuo li')"
+        self.selector_two="out([{'title':$('title').text(),'content':$('.content').text()}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+    def get_urls(self,req,resp):
+        if self.tasks.get(__name__())!=None:
+            return '%s has start'%(__name__())
+        else:
+            self.tasks[__name__()]=__name__()
+
+        import gevent
+        jobs=[]
+        queue=Queue.Queue(100000)
+        start=self.pages[0]
+        end=self.pages[1]
+        for i in range(start,end):
+            queue.put(i)
+        for i in range(0,20):
+            jobs.append(gevent.spawn(self._get_urls,queue))
+        gevent.joinall(jobs)
+
+
+    def get_details(self,req,resp):
+        if self.tasks.get(__name__())!=None:
+            return '%s has start'%(__name__())
+        else:
+            self.tasks[__name__()]=__name__()
+        import gevent
+        jobs=[]
+        queue=Queue.Queue(1000000)
+        for i in range(0,20):
+            jobs.append(gevent.spawn(self._get_details,queue))
+        rows= ci.db.query("select * from urls where status=0 and site='%s'" % (self.site_name))
+        for row in rows:
+            queue.put(row)
+        gevent.joinall(jobs)
+
+    def download(self,req,resp):
+        if self.tasks.get(__name__())!=None:
+            return '%s has start'%(__name__())
+        else:
+            self.tasks[__name__()]=__name__()
+        import gevent
+        queue=Queue.Queue(1000000)
+        rows= ci.db.query("select * from files where status=0 and site='%s'" %(self.site_name))
+        for row in rows:
+            queue.put(row)
+        jobs=[]
+        for i in range(0,20):
+            jobs.append(gevent.spawn(self._download_files,queue))
+        gevent.joinall(jobs)
+
+
+    def _get_urls(self,queue):
+        while True:
+            import requests
+            import json
+            try:
+                i=queue.get(timeout=3)
+                if i!=None:
+                    try:
+                        import requests
+                        url=('''%s'''%(self.page_url))%(i)
+                        header='''Cookie:%s'''%(self.cookie)
+                        body='''%s'''% self.step_one_data
+                        jscode='''%s'''%(self.selector_one)
+                        posturl=''''''#js server phantomjs
+                        data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':0}
+                        jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
+                        jdata=json.loads(jdata)
+                        print jdata
+                        for d in jdata:
+                            d['site']=self.site_name
+                            d['status']='0'
+                            d['level']='1'
+                            print d
+                            ci.db.insert('urls',d)
+                    except Exception as er:
+                        ci.logger.error(er)
+                else:
+                    break
+            except Exception as er:
+                pass
+
+
+    def _get_details(self,queue):
+        import time
+        while True:
+            try:
+                row=queue.get(timeout=30)
+                import requests
+                import json
+                try:
+                    import requests
+                    import json
+                    url=row['href']
+                    header='''Cookie:%s'''%(self.cookie)
+                    body='''%s'''%(self.step_two_data)
+                    jscode='''%s'''%(self.selector_two)
+                    posturl=''''''#js server phantomjs
+                    data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':'0'}
+                    jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
+                    jdata=json.loads(jdata)
+
+                    for d in jdata:
+                        # print d
+                        d['site']=self.site_name
+                        d['status']='0'
+                        d['title']=d['title'].split("\t")[0]
+                        if len(d['title'].split('.'))==2:
+                            d['ftype']=d['title'].split('.')[1]
+                        ci.db.insert('files',d)
+                       
+                        ci.db.update('urls',{'status':1}, {'href':row['href']})
+                        # time.sleep(0.001)
+                except Exception as er:
+                    #pass
+                    ci.logger.error(er)
+            except Exception as er:
+                pass
+
+
+
+    def _download_files(self,queue):
+        import time
+        import requests
+        import json
+        while True:
+            try:
+                row=queue.get(timeout=30)
+                try:
+                    r = requests.get(row['href'], stream=True)
+                    with open("H:/kankandou/"+ row['title'], 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            if chunk: # filter out keep-alive new chunks
+                                f.write(chunk)
+                                f.flush()
+                        f.close()
+                    ci.db.update('files',{'status':1}, {'href':row['href']})
+                except Exception as er:
+                    pass
+                    ci.logger.error(er)
+            except Exception as er:
+                pass
