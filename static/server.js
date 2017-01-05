@@ -149,7 +149,7 @@ function build_data(str) {
     return data
 }
 function waitFor(testFx, onReady, onTimeout, timeOutMillis) {
-    var maxtimeOutMillis = timeOutMillis ? timeOutMillis: 3000,
+    var maxtimeOutMillis = timeOutMillis ? timeOutMillis: 5000,
     start = new Date().getTime(),
     condition = false,
     interval = setInterval(function() {
@@ -270,6 +270,13 @@ function(request, response) {
             page.onUrlChanged = function(targetUrl) {
                 console.log('New URL: ' + targetUrl)
             };
+			page.settings.resourceTimeout = 1000*15; // 15 seconds
+			page.onResourceTimeout = function(e) {
+				console.log(e.errorCode);   // it'll probably be 408
+				console.log(e.errorString); // it'll probably be 'Network timeout on resource'
+				console.log(e.url);		 // the url whose request timed out
+				page.close()
+			};
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             console.log('start xxxxx');
             console.log('jscode==>', data['jscode']);
