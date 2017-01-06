@@ -272,10 +272,19 @@ function(request, response) {
             };
 			page.settings.resourceTimeout = 1000*15; // 15 seconds
 			page.onResourceTimeout = function(e) {
-				console.log(e.errorCode);   // it'll probably be 408
-				console.log(e.errorString); // it'll probably be 'Network timeout on resource'
-				console.log(e.url);		 // the url whose request timed out
-				page.close()
+				try
+				{
+					console.log(e.errorCode);   // it'll probably be 408
+					console.log(e.errorString); // it'll probably be 'Network timeout on resource'
+					console.log(e.url);		 // the url whose request timed out
+					response.close()
+					page.close()
+				}
+				catch (e)
+				{
+					 console.log(e)
+				}
+
 			};
             page.settings.userAgent = 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727)';
             console.log('start xxxxx');
@@ -318,8 +327,9 @@ function(request, response) {
 
                 if(!isEmpty(header)){
                     page.customHeaders=header
-					var cookies=header['Cookie']||header['cookie']
+					
 					try{
+						var cookies=header['Cookie']||header['cookie']||''
 						var cc=cookies.split(';')
 						for(var i in cc) {
 							var kv=cc[i].split('=')
@@ -389,17 +399,22 @@ function spider(page, request, response, data, status) {
              console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
           //  page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
         }
+		page.evaluateJavaScript('function() { window.$=""; $=""; }  ')
         page.injectJs('jquery.js');
         page.injectJs('util.js');
 
         console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxx',data['url'])
         page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
-
-        if (data['page']!==undefined&&data['page'].trim()!=''){
+        
+		/*
+        if (data['page']!==undefined&&data['page'].trim()!=''&&data['page'].trim()!='undefined'){
             page.evaluateJavaScript('function() { transaleurl("'+data['url']+'") }  ')
         } else {
            page.evaluateJavaScript('function() { transaleurl() }  ')
+		   console.log('bbbbbbbbbbbbbbbbbbbbbb')
+		   console.log(data['page'])
         }
+		*/
 
         try {
             response.statusCode = 200;
