@@ -27,12 +27,23 @@ class Article(object):
 
     def __init__(self):
         self.tasks={}
+
+
         self.site_name='3kkbb'
         self.page_url='http://www.3kkbb.net/art/article/index-%s.html'
         self.pages=[2,10]
         self.cookie=''
         self.selector_one="href_data('.zuo li')"
         self.selector_two="out([{'title':$('title').text(),'content':$('.content').text()}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name='hantiannan'
+        self.page_url='http://blog.csdn.net/hantiannan/article/list/%s'
+        self.pages=[1,40]
+        self.cookie=''
+        self.selector_one="href_data('#article_list .link_title')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#article_content')}])"
         self.step_one_data=''
         self.step_two_data=''
 
@@ -49,7 +60,7 @@ class Article(object):
         end=self.pages[1]
         for i in range(start,end):
             queue.put(i)
-        for i in range(0,20):
+        for i in range(0,10):
             jobs.append(gevent.spawn(self._get_urls,queue))
         gevent.joinall(jobs)
 
@@ -102,13 +113,15 @@ class Article(object):
                         data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':0}
                         jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
                         jdata=json.loads(jdata)
-                        print jdata
                         for d in jdata:
                             d['site']=self.site_name
                             d['status']='0'
                             d['level']='1'
-                            print d
-                            ci.db.insert('urls',d)
+                            cnt=ci.db.scalar("select count(1) as cnt from urls where href='{href}'",{'href':d['href']})['cnt']
+                            if cnt==0 and str(d['href']).startswith('http'):
+                                ci.db.insert('urls',d)
+                            else:
+                                print("%s exist" % d['href'].encode('utf-8','ignore'))
                     except Exception as er:
                         ci.logger.error(er)
                 else:
@@ -137,14 +150,14 @@ class Article(object):
                     jdata=json.loads(jdata)
 
                     for d in jdata:
-                        # print d
+                        d['href']=url
                         d['site']=self.site_name
                         d['status']='0'
                         d['title']=d['title'].split("\t")[0]
                         if len(d['title'].split('.'))==2:
                             d['ftype']=d['title'].split('.')[1]
                         ci.db.insert('files',d)
-                       
+
                         ci.db.update('urls',{'status':1}, {'href':row['href']})
                         # time.sleep(0.001)
                 except Exception as er:
@@ -153,6 +166,49 @@ class Article(object):
             except Exception as er:
                 pass
 
+    def gen_pdf(self,req,resp):
+        h1="<h2><a href='#%s'>%s</a></h2>"
+        h2="<h2><a href='#%s'>%s</a><a style='padding-left:200px;' href='#pdf_top'>返回顶部</a></h2>"
+        content="<div id='%s'>%s%s</div>"
+        catalog=[]
+        contents=[]
+        html="""
+        <!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+            <html>
+             <head>
+              <meta http-equiv="content-type" content="text/html;charset=utf-8">
+             </head>
+
+             <body>
+
+             <div id='pdf_top'></div>
+
+             %s
+             %s
+             </body>
+            </html>
+
+
+        """
+        try:
+            rows=ci.db.query("select files.content,urls.title from files inner join urls on files.href=urls.href where files.site='%s'" % self.site_name)
+            for row in rows:
+                if row['title']==None:
+                    row['title']=''
+                md5=ci.md5(row['title'])
+                if row['content']==None:
+                    row['content']=''
+                tmp= h1 % (md5,row['title'].encode('utf-8','ignore'))
+                catalog.append(tmp)
+                tmp= h2 % (md5,row['title'].encode('utf-8','ignore'))
+                contents.append(content %(md5,tmp,row['content'].encode('utf-8','ignore')) )
+            htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
+
+            open(self.site_name+'.html','wb').write(htmls)
+
+        except Exception as er:
+            ci.logger.error(er)
+            pass
 
 
     def _download_files(self,queue):
