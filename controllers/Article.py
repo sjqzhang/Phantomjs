@@ -56,6 +56,24 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
+        self.site_name=u'技术分享'
+        self.page_url='http://wiki.meizu.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('#mw-content-text>ul li')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name=u'美团点评技术'
+        self.page_url='http://tech.meituan.com/?l=6000'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('.post-title')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('.article__content')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
     def get_urls(self,req,resp):
         if self.tasks.get(__name__())!=None:
             return '%s has start'%(__name__())
@@ -180,8 +198,10 @@ class Article(object):
                 pass
 
     def gen_pdf(self,req,resp):
+        import re
         h1="<h2><a href='#%s'>%s</a></h2>"
-        h2="<h2><a href='#%s'>%s</a><a style='padding-left:200px;' href='#pdf_top'>返回顶部</a></h2>"
+        h2="<div><h1 style='display:inline-block;'><a href='#%s'>%s</a></h1>" \
+           "<span style='float:right;display:inline-block;'><a  href='#pdf_top'>返回顶部</a></span></div>"
         content="<div id='%s'>%s%s</div>"
         catalog=[]
         contents=[]
@@ -204,16 +224,25 @@ class Article(object):
 
         """
         try:
-            rows=ci.db.query("select files.content,urls.title from files inner join urls on files.href=urls.href where files.site='%s' order by urls.id" % self.site_name)
+            rows=ci.db.query("select files.content,urls.title,urls.href from files inner join urls on files.href=urls.href where files.site='%s' order by urls.id" % self.site_name)
             for row in rows:
                 if row['title']==None or row['content']==None:
                     continue
-                md5=ci.md5(row['title'])
+                md5=ci.md5(str(row['href']))
                 tmp= h1 % (md5,row['title'].encode('utf-8','ignore'))
                 catalog.append(tmp)
                 tmp= h2 % (md5,row['title'].encode('utf-8','ignore'))
-                contents.append(content %(md5,tmp,row['content'].encode('utf-8','ignore')) )
-            htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
+                txt=row['content'].encode('utf-8','ignore')
+                rep = {r"<h4[^\>]*?>": "<h5>",r"</h4>": "</h5>",r"<h3[^\>]*?>": "<h4>",r"</h3>": "</h4>",
+                       r"<h2[^\>]*?>": "<h3>",r"</h2>": "</h3>",r"<h1[^\>]*?>": "<h2>",r"</h1>": "</h2>",}
+                for k,v in rep.iteritems():
+                    txt = re.sub(k,v,txt)
+                contents.append(content %(md5,tmp,txt) )
+            is_show_cat=req.params.get('c','0')
+            if is_show_cat=='1':
+                htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
+            else:
+                htmls=html % ( "<br>", "<br>".join(contents))
             import platform
             if platform.system().lower()=='windows':
                 open(self.site_name.encode('gbk','ignore')+'.html','w').write(htmls)
