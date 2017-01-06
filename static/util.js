@@ -50,7 +50,7 @@ function include_js(url) {
 
 function __outerhtml(selector) {
 
-	$(selector).prop('outerHTML')
+	return $(selector).prop('outerHTML')
 
 }
 
