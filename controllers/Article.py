@@ -47,6 +47,24 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
+        self.site_name='qiankunli'
+        self.page_url='http://qiankunli.github.io/'
+        self.pages=[1,40]
+        self.cookie=''
+        self.selector_one="href_data('.col-md-12')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#content')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name='Web前端'
+        self.page_url='http://wiki.meizu.com/index.php?title=Web%E5%89%8D%E7%AB%AF'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('#mw-content-text ul li')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#bodyContent')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
     def get_urls(self,req,resp):
         if self.tasks.get(__name__())!=None:
             return '%s has start'%(__name__())
@@ -105,7 +123,10 @@ class Article(object):
                 if i!=None:
                     try:
                         import requests
-                        url=('''%s'''%(self.page_url))%(i)
+                        if self.page_url.find('%s')!=-1:
+                            url=('''%s'''%(self.page_url))%(i)
+                        else:
+                            url=self.page_url
                         header='''Cookie:%s'''%(self.cookie)
                         body='''%s'''% self.step_one_data
                         jscode='''%s'''%(self.selector_one)
@@ -191,20 +212,18 @@ class Article(object):
 
         """
         try:
-            rows=ci.db.query("select files.content,urls.title from files inner join urls on files.href=urls.href where files.site='%s'" % self.site_name)
+            rows=ci.db.query("select files.content,urls.title from files inner join urls on files.href=urls.href where files.site='%s' order by urls.id" % self.site_name)
             for row in rows:
-                if row['title']==None:
-                    row['title']=''
+                if row['title']==None or row['content']==None:
+                    continue
                 md5=ci.md5(row['title'])
-                if row['content']==None:
-                    row['content']=''
                 tmp= h1 % (md5,row['title'].encode('utf-8','ignore'))
                 catalog.append(tmp)
                 tmp= h2 % (md5,row['title'].encode('utf-8','ignore'))
                 contents.append(content %(md5,tmp,row['content'].encode('utf-8','ignore')) )
             htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
 
-            open(self.site_name+'.html','wb').write(htmls)
+            open(self.site_name.decode('utf-8','ignore')+'.html','wb').write(htmls)
 
         except Exception as er:
             ci.logger.error(er)
