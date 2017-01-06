@@ -29,7 +29,7 @@ class Article(object):
         self.tasks={}
 
 
-        self.site_name='3kkbb'
+        self.site_name=u'3kkbb'
         self.page_url='http://www.3kkbb.net/art/article/index-%s.html'
         self.pages=[2,10]
         self.cookie=''
@@ -38,7 +38,7 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
-        self.site_name='hantiannan'
+        self.site_name=u'hantiannan'
         self.page_url='http://blog.csdn.net/hantiannan/article/list/%s'
         self.pages=[1,40]
         self.cookie=''
@@ -47,21 +47,12 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
-        self.site_name='qiankunli'
+        self.site_name=u'qiankunli'
         self.page_url='http://qiankunli.github.io/'
         self.pages=[1,40]
         self.cookie=''
         self.selector_one="href_data('.col-md-12')"
         self.selector_two="out([{'title':$('title').text(),'content':out_html('#content')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name='Web前端'
-        self.page_url='http://wiki.meizu.com/index.php?title=Web%E5%89%8D%E7%AB%AF'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('#mw-content-text ul li')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('#bodyContent')}])"
         self.step_one_data=''
         self.step_two_data=''
 
@@ -134,6 +125,7 @@ class Article(object):
                         data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':0}
                         jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
                         jdata=json.loads(jdata)
+                        # print jdata
                         for d in jdata:
                             d['site']=self.site_name
                             d['status']='0'
@@ -222,8 +214,11 @@ class Article(object):
                 tmp= h2 % (md5,row['title'].encode('utf-8','ignore'))
                 contents.append(content %(md5,tmp,row['content'].encode('utf-8','ignore')) )
             htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
-
-            open(self.site_name.decode('utf-8','ignore')+'.html','wb').write(htmls)
+            import platform
+            if platform.system().lower()=='windows':
+                open(self.site_name.encode('gbk','ignore')+'.html','w').write(htmls)
+            else:
+                open(self.site_name.encode('utf-8','ignore')+'.html','w').write(htmls)
 
         except Exception as er:
             ci.logger.error(er)
