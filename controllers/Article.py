@@ -74,14 +74,27 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
+    def start(self,req,resp):
+        import gevent
+
+        def job():
+            self.get_urls(req,resp)
+            self.get_details(req,resp)
+            self.gen_html(req,resp)
+        # threading.Thread(target=job).start()
+        gevent.spawn(job)
+        return 'job start'
+
+
     def get_urls(self,req,resp):
-        if self.tasks.get(__name__())!=None:
-            return '%s has start'%(__name__())
-        else:
-            self.tasks[__name__()]=__name__()
+        # if self.tasks.get(__name__())!=None:
+        #     return '%s has start'%(__name__())
+        # else:
+        #     self.tasks[__name__()]=__name__()
 
         import gevent
         jobs=[]
+        Queue.Queue()
         queue=Queue.Queue(100000)
         start=self.pages[0]
         end=self.pages[1]
@@ -90,13 +103,17 @@ class Article(object):
         for i in range(0,10):
             jobs.append(gevent.spawn(self._get_urls,queue))
         gevent.joinall(jobs)
+        msg='get_urls finish'
+        print(msg)
+        return msg
+
 
 
     def get_details(self,req,resp):
-        if self.tasks.get(__name__())!=None:
-            return '%s has start'%(__name__())
-        else:
-            self.tasks[__name__()]=__name__()
+        # if self.tasks.get(__name__())!=None:
+        #     return '%s has start'%(__name__())
+        # else:
+        #     self.tasks[__name__()]=__name__()
         import gevent
         jobs=[]
         queue=Queue.Queue(1000000)
@@ -106,6 +123,9 @@ class Article(object):
         for row in rows:
             queue.put(row)
         gevent.joinall(jobs)
+        msg='get_details finish'
+        print(msg)
+        return msg
 
     def download(self,req,resp):
         if self.tasks.get(__name__())!=None:
@@ -128,7 +148,10 @@ class Article(object):
             import requests
             import json
             try:
-                i=queue.get(timeout=3)
+                if queue.empty():
+                    break
+                i=queue.get()
+                print('page',i)
                 if i!=None:
                     try:
                         import requests
@@ -154,10 +177,12 @@ class Article(object):
                             else:
                                 print("%s exist" % d['href'].encode('utf-8','ignore'))
                     except Exception as er:
+                        print('error'+str(er))
                         ci.logger.error(er)
                 else:
                     break
             except Exception as er:
+                print('error'+str(er))
                 pass
 
 
@@ -165,6 +190,8 @@ class Article(object):
         import time
         while True:
             try:
+                if queue.empty():
+                    break
                 row=queue.get(timeout=30)
                 import requests
                 import json
@@ -197,7 +224,7 @@ class Article(object):
             except Exception as er:
                 pass
 
-    def gen_pdf(self,req,resp):
+    def gen_html(self,req,resp):
         import re
         h1="<h2><a href='#%s'>%s</a></h2>"
         h2="<div><h1 style='display:inline-block;'><a href='#%s'>%s</a></h1>" \
@@ -252,6 +279,9 @@ class Article(object):
         except Exception as er:
             ci.logger.error(er)
             pass
+        msg='gen_html finish'
+        print(msg)
+        return msg
 
 
     def _download_files(self,queue):
