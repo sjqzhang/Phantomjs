@@ -57,7 +57,7 @@ class Article(object):
         self.step_two_data=''
 
         self.site_name=u'技术分享'
-        self.page_url='http://wiki.meizu.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
+        self.page_url='http://wiki.web.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
         self.pages=[1,2]
         self.cookie=''
         self.selector_one="href_data('#mw-content-text>ul li')"
@@ -73,6 +73,26 @@ class Article(object):
         self.selector_two="out([{'title':$('title').text(),'content':out_html('.article__content')}])"
         self.step_one_data=''
         self.step_two_data=''
+
+        self.site_name=u'有点黄'
+        self.page_url='http://11qqmm.com/xiaoshuoqu/jiqingxiaoshuo/'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('.channel li:gt(3)')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('.post'),'pages':get_pages('.newpagination')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name=u'大数据应用'
+        self.page_url='http://bigdata.51cto.com/col/577/list_577_%s.htm'
+        self.pages=[1,30]
+        self.cookie=''
+        self.selector_one="href_data('.list_leftcont h4')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('.zwnr')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+        self.selector_hidden='.zwnr >div'
+
 
     def start(self,req,resp):
         import gevent
@@ -196,18 +216,34 @@ class Article(object):
                 import requests
                 import json
                 try:
-                    import requests
-                    import json
-                    url=row['href']
-                    print('crawl',url)
-                    header='''Cookie:%s'''%(self.cookie)
-                    body='''%s'''%(self.step_two_data)
-                    jscode='''%s'''%(self.selector_two)
-                    posturl=''''''#js server phantomjs
-                    data={'url':url,'header':header,'body':body,'jscode':jscode,'posturl':posturl,'js':'0'}
-                    jdata=requests.post('http://127.0.0.1:8080/api/request',data).text
-                    jdata=json.loads(jdata)
+                    def crawl(url):
+                        import requests
+                        import json
+                        # url=row['href']
+                        print('crawl', url)
+                        header = '''Cookie:%s''' % (self.cookie)
+                        body = '''%s''' % (self.step_two_data)
+                        jscode = '''%s''' % (self.selector_two)
+                        posturl = ''''''  #js server phantomjs
+                        data = {'url': url, 'header': header, 'body': body, 'jscode': jscode, 'posturl': posturl,
+                                'js': '0'}
+                        jdata = requests.post('http://127.0.0.1:8080/api/request', data).text
+                        jdata = json.loads(jdata)
+                        return jdata
 
+
+                    jdata = crawl(row['href'])
+                    if len(jdata) == 1:
+                        if 'pages' in jdata[0]:
+                            result = []
+                            result.append(jdata[0]['content'])
+                            for url in jdata[0]['pages']:
+                                data = crawl(url)
+                                if len(data) == 1:
+                                    result.append(data[0]['content'])
+                            del jdata[0]['pages']
+                            jdata[0]['content'] = ''.join(result)
+                    url = row['href']
                     for d in jdata:
                         d['href']=url
                         d['site']=self.site_name
@@ -238,6 +274,7 @@ class Article(object):
             <html>
              <head>
               <meta http-equiv="content-type" content="text/html;charset=utf-8">
+              <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
              </head>
 
              <body>
@@ -247,6 +284,13 @@ class Article(object):
              %s
              %s
              </body>
+             <script>
+               $(document).ready(function(){
+
+                    $('%s').hide();
+
+               })
+             </script>
             </html>
 
 
@@ -267,10 +311,14 @@ class Article(object):
                     txt = re.sub(k,v,txt)
                 contents.append(content %(md5,tmp,txt) )
             is_show_cat=req.params.get('c','0')
-            if is_show_cat=='1':
-                htmls=html % ( "<br>".join(catalog), "<br>".join(contents))
+            if hasattr(self,'selector_hidden'):
+                hidden_selector=self.selector_hidden
             else:
-                htmls=html % ( "<br>", "<br>".join(contents))
+                hidden_selector='.share5'
+            if is_show_cat=='1':
+                htmls=html % ( "<br>".join(catalog), "<br>".join(contents),hidden_selector)
+            else:
+                htmls=html % ( "<br>", "<br>".join(contents),hidden_selector)
             import platform
             if platform.system().lower()=='windows':
                 open(self.site_name.encode('gbk','ignore')+'.html','w').write(htmls)
