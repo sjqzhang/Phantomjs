@@ -233,3 +233,20 @@ function waitFor(testFx, onReady, timeOutMillis) {
         }, 250); //< repeat check every 250ms
 };
 
+
+function get_pages(selector){
+	var hrefs={}
+	$('a',selector).each(function(i){
+		var href=$(this).attr('href')
+		console.log(href)
+		if(href!==undefined&&href.length>0&&hrefs[href]==undefined&& href.substring(href.length-1)!='#') {
+			hrefs[href]=''
+		}
+	})
+	var urls=[]
+	for(var i in hrefs){
+		urls.push(i)
+	}
+	return urls
+	console.log(hrefs)
+}
