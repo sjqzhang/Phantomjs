@@ -199,6 +199,7 @@ class Article(object):
                     import requests
                     import json
                     url=row['href']
+                    print('crawl',url)
                     header='''Cookie:%s'''%(self.cookie)
                     body='''%s'''%(self.step_two_data)
                     jscode='''%s'''%(self.selector_two)
