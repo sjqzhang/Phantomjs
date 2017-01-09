@@ -103,6 +103,24 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
+        self.site_name=u'数据库设计规范'
+        self.page_url='http://wiki.web.com/index.php?title=%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A7%84%E8%8C%83'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('#mw-content-text>ul li')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text'),'files':get_files('#mw-content-text .fullMedia')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name=u'专业网络安全'
+        self.page_url='http://www.moonsec.com/sort/2/page/%s'
+        self.pages=[1,13]
+        self.cookie=''
+        self.selector_one="href_data('#main h1')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('.context')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
     def start(self,req,resp):
         import gevent
 
@@ -170,9 +188,10 @@ class Article(object):
         for row in rows:
             queue.put(row)
         jobs=[]
-        for i in range(0,20):
-            jobs.append(gevent.spawn(self._download_files,queue))
-        gevent.joinall(jobs)
+        if not queue.empty():
+            for i in range(0,20):
+                jobs.append(gevent.spawn(self._download_files,queue))
+            gevent.joinall(jobs)
 
 
     def _get_urls(self,queue):
@@ -265,7 +284,12 @@ class Article(object):
                             d['files']=json.dumps(d['files'])
                         if len(d['title'].split('.'))==2:
                             d['ftype']=d['title'].split('.')[1]
-                        ci.db.insert('files',d)
+
+                        cnt=ci.db.scalar("select count(1) as cnt from files where href='{href}'",{'href':d['href']})['cnt']
+                        if cnt==0 and str(d['href']).startswith('http'):
+                            ci.db.insert('files',d)
+                        else:
+                            print("%s exist" % d['href'].encode('utf-8','ignore'))
 
                         ci.db.update('urls',{'status':1}, {'href':row['href']})
                         # time.sleep(0.001)
@@ -291,7 +315,7 @@ class Article(object):
               <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
              </head>
 
-             <body>
+             <body style="margin:50px;">
 
              <div id='pdf_top'></div>
 
@@ -334,14 +358,21 @@ class Article(object):
             else:
                 htmls=html % ( "<br>", "<br>".join(contents),hidden_selector)
             import platform
-            if platform.system().lower()=='windows':
-                open(self.site_name.encode('gbk','ignore')+'.html','w').write(htmls)
-            else:
-                open(self.site_name.encode('utf-8','ignore')+'.html','w').write(htmls)
+            try:
+                if platform.system().lower()=='windows':
+                    open(self.site_name.encode('gbk','ignore')+'.html','w').write(htmls)
+
+                else:
+                    open(self.site_name.encode('utf-8','ignore')+'.html','w').write(htmls)
+            except Exception as er:
+                ci.logger.error(er)
+                uuid=ci.uuid()
+                open('%s.html'%uuid,'w').write(htmls)
+                ci.logger.info("file %s.html has gen" %uuid)
 
         except Exception as er:
             ci.logger.error(er)
-            pass
+            print(er)
         msg='gen_html finish'
         print(msg)
         return msg
@@ -383,7 +414,7 @@ class Article(object):
                                     f.write(chunk)
                                     f.flush()
                             f.close()
-                        ci.db.update('files',{'status':1}, {'href':row['href']})
+                        ci.db.update('files',{'status':1}, {'href':link['href']})
                 except Exception as er:
                     pass
                     ci.logger.error(er)
