@@ -250,3 +250,18 @@ function get_pages(selector){
 	return urls
 	console.log(hrefs)
 }
+
+function get_files(selector){
+	var hrefs={}
+    var urls=[]
+	$('a',selector).each(function(i){
+		var href=$(this).attr('href')
+		console.log(href)
+		if(href!==undefined&&href.length>0&&hrefs[href]==undefined&& href.substring(href.length-1)!='#') {
+            var title=$.trim($(this).text())
+			hrefs[href]= title
+            urls.push({'href':href,'title':title})
+		}
+	})
+    return urls;
+}

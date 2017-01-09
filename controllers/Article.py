@@ -94,6 +94,15 @@ class Article(object):
         self.selector_hidden='.zwnr >div'
 
 
+        self.site_name=u'技术分享'
+        self.page_url='http://wiki.web.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('#mw-content-text>ul li')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text'),'files':get_files('#mw-content-text .fullMedia')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
     def start(self,req,resp):
         import gevent
 
@@ -101,6 +110,7 @@ class Article(object):
             self.get_urls(req,resp)
             self.get_details(req,resp)
             self.gen_html(req,resp)
+            self.download(req,resp)
         # threading.Thread(target=job).start()
         gevent.spawn(job)
         return 'job start'
@@ -154,7 +164,9 @@ class Article(object):
             self.tasks[__name__()]=__name__()
         import gevent
         queue=Queue.Queue(1000000)
-        rows= ci.db.query("select * from files where status=0 and site='%s'" %(self.site_name))
+        # rows= ci.db.query("select * from files where status=0 and site='%s' and length(files)>10 " %(self.site_name))
+        rows= ci.db.query("select files.files from files inner join urls"
+                          " on files.href=urls.href where files.site='%s' and length(files)>10 order by urls.id" %(self.site_name))
         for row in rows:
             queue.put(row)
         jobs=[]
@@ -249,6 +261,8 @@ class Article(object):
                         d['site']=self.site_name
                         d['status']='0'
                         d['title']=d['title'].split("\t")[0]
+                        if 'files' in d:
+                            d['files']=json.dumps(d['files'])
                         if len(d['title'].split('.'))==2:
                             d['ftype']=d['title'].split('.')[1]
                         ci.db.insert('files',d)
@@ -337,18 +351,39 @@ class Article(object):
         import time
         import requests
         import json
+        import os
+        import platform
+        site_name=self.site_name
+        system=''
+        if platform.system().lower()=='windows':
+            site_name=self.site_name.encode('gbk','ignore')
+            system='windows'
+        else:
+            site_name=self.site_name.encode('utf-8','ignore')
+
+        if not os.path.isdir(site_name):
+            os.mkdir(site_name)
         while True:
             try:
+                if queue.empty():
+                    break
                 row=queue.get(timeout=30)
                 try:
-                    r = requests.get(row['href'], stream=True)
-                    with open("H:/kankandou/"+ row['title'], 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=1024):
-                            if chunk: # filter out keep-alive new chunks
-                                f.write(chunk)
-                                f.flush()
-                        f.close()
-                    ci.db.update('files',{'status':1}, {'href':row['href']})
+                    files=json.loads(row['files'])
+                    for link in files:
+                        r = requests.get(link['href'], stream=True)
+                        title=''
+                        if system=='windows':
+                            title=link['title'].encode('gbk','ignore')
+                        else:
+                            title=link['title'].encode('utf-8','ignore')
+                        with open("./%s/" % (site_name) + title , 'wb') as f:
+                            for chunk in r.iter_content(chunk_size=1024):
+                                if chunk: # filter out keep-alive new chunks
+                                    f.write(chunk)
+                                    f.flush()
+                            f.close()
+                        ci.db.update('files',{'status':1}, {'href':row['href']})
                 except Exception as er:
                     pass
                     ci.logger.error(er)
