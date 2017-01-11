@@ -47,79 +47,7 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
-        self.site_name=u'qiankunli'
-        self.page_url='http://qiankunli.github.io/'
-        self.pages=[1,40]
-        self.cookie=''
-        self.selector_one="href_data('.col-md-12')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('#content')}])"
-        self.step_one_data=''
-        self.step_two_data=''
 
-        self.site_name=u'技术分享'
-        self.page_url='http://wiki.web.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('#mw-content-text>ul li')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name=u'美团点评技术'
-        self.page_url='http://tech.meituan.com/?l=6000'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('.post-title')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('.article__content')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name=u'有点黄'
-        self.page_url='http://11qqmm.com/xiaoshuoqu/jiqingxiaoshuo/'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('.channel li:gt(3)')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('.post'),'pages':get_pages('.newpagination')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name=u'大数据应用'
-        self.page_url='http://bigdata.51cto.com/col/577/list_577_%s.htm'
-        self.pages=[1,30]
-        self.cookie=''
-        self.selector_one="href_data('.list_leftcont h4')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('.zwnr')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-        self.selector_hidden='.zwnr >div'
-
-
-        self.site_name=u'技术分享'
-        self.page_url='http://wiki.web.com/index.php?title=%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('#mw-content-text>ul li')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text'),'files':get_files('#mw-content-text .fullMedia')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name=u'数据库设计规范'
-        self.page_url='http://wiki.web.com/index.php?title=%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A7%84%E8%8C%83'
-        self.pages=[1,2]
-        self.cookie=''
-        self.selector_one="href_data('#mw-content-text>ul li')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text'),'files':get_files('#mw-content-text .fullMedia')}])"
-        self.step_one_data=''
-        self.step_two_data=''
-
-        self.site_name=u'专业网络安全'
-        self.page_url='http://www.moonsec.com/sort/2/page/%s'
-        self.pages=[1,13]
-        self.cookie=''
-        self.selector_one="href_data('#main h1')"
-        self.selector_two="out([{'title':$('title').text(),'content':out_html('.context')}])"
-        self.step_one_data=''
-        self.step_two_data=''
 
     def start(self,req,resp):
         import gevent
@@ -219,15 +147,21 @@ class Article(object):
                         jdata=json.loads(jdata)
                         # print jdata
                         for d in jdata:
-                            d['site']=self.site_name
-                            d['status']='0'
-                            d['level']='1'
-                            cnt=ci.db.scalar("select count(1) as cnt from urls where href='{href}'",{'href':d['href']})['cnt']
-                            if cnt==0 and str(d['href']).startswith('http'):
-                                ci.db.insert('urls',d)
-                            else:
-                                print("%s exist" % d['href'].encode('utf-8','ignore'))
+                            try:
+                                d['site']=self.site_name
+                                d['status']='0'
+                                d['level']='1'
+                                cnt=ci.db.scalar("select count(1) as cnt from urls where href='{href}'",{'href':d['href']})['cnt']
+                                if cnt==0 and str(d['href']).startswith('http'):
+                                    ci.db.insert('urls',d)
+                                else:
+                                    print("%s exist" % d['href'].encode('utf-8','ignore'))
+                            except Exception as err:
+                                print(d)
+                                ci.logger.error(err)
+                                pass
                     except Exception as er:
+                        print(d)
                         print('error'+str(er))
                         ci.logger.error(er)
                 else:
@@ -276,22 +210,27 @@ class Article(object):
                             jdata[0]['content'] = ''.join(result)
                     url = row['href']
                     for d in jdata:
-                        d['href']=url
-                        d['site']=self.site_name
-                        d['status']='0'
-                        d['title']=d['title'].split("\t")[0]
-                        if 'files' in d:
-                            d['files']=json.dumps(d['files'])
-                        if len(d['title'].split('.'))==2:
-                            d['ftype']=d['title'].split('.')[1]
+                        try:
+                            d['href']=url
+                            d['site']=self.site_name
+                            d['status']='0'
+                            d['title']=d['title'].split("\t")[0]
+                            if 'files' in d:
+                                d['files']=json.dumps(d['files'])
+                            if len(d['title'].split('.'))==2:
+                                d['ftype']=d['title'].split('.')[1]
 
-                        cnt=ci.db.scalar("select count(1) as cnt from files where href='{href}'",{'href':d['href']})['cnt']
-                        if cnt==0 and str(d['href']).startswith('http'):
-                            ci.db.insert('files',d)
-                        else:
-                            print("%s exist" % d['href'].encode('utf-8','ignore'))
+                            cnt=ci.db.scalar("select count(1) as cnt from files where href='{href}'",{'href':d['href']})['cnt']
+                            if cnt==0 and str(d['href']).startswith('http'):
+                                ci.db.insert('files',d)
+                            else:
+                                print("%s exist" % d['href'].encode('utf-8','ignore'))
 
-                        ci.db.update('urls',{'status':1}, {'href':row['href']})
+                            ci.db.update('urls',{'status':1}, {'href':row['href']})
+                        except Exception as err:
+                            print(err)
+                            ci.logger.error(err)
+                            pass
                         # time.sleep(0.001)
                 except Exception as er:
                     #pass
@@ -402,19 +341,24 @@ class Article(object):
                 try:
                     files=json.loads(row['files'])
                     for link in files:
-                        r = requests.get(link['href'], stream=True)
-                        title=''
-                        if system=='windows':
-                            title=link['title'].encode('gbk','ignore')
-                        else:
-                            title=link['title'].encode('utf-8','ignore')
-                        with open("./%s/" % (site_name) + title , 'wb') as f:
-                            for chunk in r.iter_content(chunk_size=1024):
-                                if chunk: # filter out keep-alive new chunks
-                                    f.write(chunk)
-                                    f.flush()
-                            f.close()
-                        ci.db.update('files',{'status':1}, {'href':link['href']})
+                        try:
+                            r = requests.get(link['href'], stream=True)
+                            title=''
+                            if system=='windows':
+                                title=link['title'].encode('gbk','ignore')
+                            else:
+                                title=link['title'].encode('utf-8','ignore')
+                            with open("./%s/" % (site_name) + title , 'wb') as f:
+                                for chunk in r.iter_content(chunk_size=1024):
+                                    if chunk: # filter out keep-alive new chunks
+                                        f.write(chunk)
+                                        f.flush()
+                                f.close()
+                            ci.db.update('files',{'status':1}, {'href':link['href']})
+                        except Exception as err:
+                            print(err)
+                            ci.logger.error(err)
+                            pass
                 except Exception as er:
                     pass
                     ci.logger.error(er)
