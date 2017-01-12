@@ -236,7 +236,12 @@ function waitFor(testFx, onReady, timeOutMillis) {
 
 function get_pages(selector){
 	var hrefs={}
-	$('a',selector).each(function(i){
+	var dom=$('a',selector)
+	if (dom.length==0)
+	{
+		dom=$(selector)
+	}
+	dom.each(function(i){
 		var href=$(this).attr('href')
 		console.log(href)
 		if(href!==undefined&&href.length>0&&hrefs[href]==undefined&& href.substring(href.length-1)!='#') {
@@ -254,7 +259,12 @@ function get_pages(selector){
 function get_files(selector){
 	var hrefs={}
     var urls=[]
-	$('a',selector).each(function(i){
+	var dom=$('a',selector)
+	if (dom.length==0)
+	{
+		dom=$(selector)
+	}
+	dom.each(function(i){
 		var href=$(this).attr('href')
 		console.log(href)
 		if(href!==undefined&&href.length>0&&hrefs[href]==undefined&& href.substring(href.length-1)!='#') {
