@@ -47,6 +47,7 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
+       
 
 
     def start(self,req,resp):
@@ -104,16 +105,19 @@ class Article(object):
         return msg
 
     def download(self,req,resp):
-        if self.tasks.get(__name__())!=None:
-            return '%s has start'%(__name__())
-        else:
-            self.tasks[__name__()]=__name__()
+        # if self.tasks.get(__name__())!=None:
+        #     return '%s has start'%(__name__())
+        # else:
+        #     self.tasks[__name__()]=__name__()
         import gevent
+
         queue=Queue.Queue(1000000)
         # rows= ci.db.query("select * from files where status=0 and site='%s' and length(files)>10 " %(self.site_name))
         rows= ci.db.query("select files.files from files inner join urls"
                           " on files.href=urls.href where files.site='%s' and length(files)>10 order by urls.id" %(self.site_name))
+        import json
         for row in rows:
+            # queue.put(json.dumps(row['files']))
             queue.put(row)
         jobs=[]
         if not queue.empty():
@@ -283,9 +287,11 @@ class Article(object):
                 tmp= h2 % (md5,row['title'].encode('utf-8','ignore'))
                 txt=row['content'].encode('utf-8','ignore')
                 rep = {r"<h4[^\>]*?>": "<h5>",r"</h4>": "</h5>",r"<h3[^\>]*?>": "<h4>",r"</h3>": "</h4>",
-                       r"<h2[^\>]*?>": "<h3>",r"</h2>": "</h3>",r"<h1[^\>]*?>": "<h2>",r"</h1>": "</h2>",}
+                       r"<h2[^\>]*?>": "<h3>",r"</h2>": "</h3>",r"<h1[^\>]*?>": "<h2>",r"</h1>": "</h2>",
+                       r"\d{11}": "13800138000",r"[0-9a-zA-Z_-]+@\w+\.(com|cn|net)":'hello@world.com',
+                       }
                 for k,v in rep.iteritems():
-                    txt = re.sub(k,v,txt)
+                    txt = re.sub(k,v,txt,flags=re.IGNORECASE)
                 contents.append(content %(md5,tmp,txt) )
             is_show_cat=req.params.get('c','0')
             if hasattr(self,'selector_hidden'):
@@ -316,7 +322,11 @@ class Article(object):
         print(msg)
         return msg
 
-
+    def _filename(self,name=''):
+        tag=r'\ / : * ? " < > |'
+        for i in tag:
+            name=name.replace(i,'')
+        return name
     def _download_files(self,queue):
         import time
         import requests
@@ -337,10 +347,10 @@ class Article(object):
             try:
                 if queue.empty():
                     break
-                row=queue.get(timeout=30)
+                row=queue.get(timeout=3)
                 try:
-                    files=json.loads(row['files'])
-                    for link in files:
+                    files=row['files']
+                    for link in json.loads(files):
                         try:
                             r = requests.get(link['href'], stream=True)
                             title=''
@@ -348,6 +358,7 @@ class Article(object):
                                 title=link['title'].encode('gbk','ignore')
                             else:
                                 title=link['title'].encode('utf-8','ignore')
+                            title=self._filename(title)
                             with open("./%s/" % (site_name) + title , 'wb') as f:
                                 for chunk in r.iter_content(chunk_size=1024):
                                     if chunk: # filter out keep-alive new chunks
