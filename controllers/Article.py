@@ -47,7 +47,24 @@ class Article(object):
         self.step_one_data=''
         self.step_two_data=''
 
-       
+        self.site_name=u'MediaWiki'
+        self.page_url='https://www.mediawiki.org/wiki/MediaWiki'  # show to get article for this
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('#mw-content-text>ul li')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('#mw-content-text'),'files':get_files('#mw-content-text a:contains(pdf),#mw-content-text a:contains(doc),#mw-content-text a:contains(ppt),#mw-content-text a:contains(xls)'),'pages':get_pages('#mw-content-text>ul li')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
+        self.site_name=u'Redis中文文档'
+        self.page_url='https://wizardforcel.gitbooks.io/redis-doc/content/'
+        self.pages=[1,2]
+        self.cookie=''
+        self.selector_one="href_data('.summary')"
+        self.selector_two="out([{'title':$('title').text(),'content':out_html('.page-wrapper')}])"
+        self.step_one_data=''
+        self.step_two_data=''
+
 
 
     def start(self,req,resp):
@@ -292,6 +309,11 @@ class Article(object):
                        }
                 for k,v in rep.iteritems():
                     txt = re.sub(k,v,txt,flags=re.IGNORECASE)
+                rep={
+                    '<div class="marker">+</div>':"",
+                    }
+                for k,v in rep.iteritems():
+                    txt = txt.replace(k,v)
                 contents.append(content %(md5,tmp,txt) )
             is_show_cat=req.params.get('c','0')
             if hasattr(self,'selector_hidden'):
