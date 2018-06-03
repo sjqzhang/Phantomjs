@@ -358,27 +358,23 @@ app.post("/api/request", function (req, res) {
    try {
 
     await page.goto(req.body.url);
+	
+	function load_js(){
 
-    await page.addScriptTag({url: "http://127.0.0.1:3000/jquery.js"});
-    await page.addScriptTag({url: "http://127.0.0.1:3000/autil.js"});
+		['jquery.js','autil.js'].map(function(file){
+			var js=fs.readFileSync(file,'utf-8');
+			page.evaluate(js)
+			console.log(js)
+		})
+	}
+	
+	load_js()
+	
 	
 	
 	page.evaluateOnNewDocument(function(){
 		
-		
-	function loadScript(url) {
-		var script = document.createElement( 'script' );
-		script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
-		document.body.appendChild( script );
-		console.log(url)
-	  };
-	  
-	window.onload=function(){
-		
-		loadScript('http://127.0.0.1:3000/jquery.js')
-		loadScript('http://127.0.0.1:3000/autil.js')
-	
-	}
+		load_js()
 		
 	})
 
