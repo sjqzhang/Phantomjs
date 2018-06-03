@@ -3,6 +3,18 @@ const app = express()
 const path = require('path')
 const bodyParser  = require("body-parser");
 const puppeteer = require('puppeteer');
+const axios = require('axios');
+
+function init(){
+	/*
+	
+function loadScript(url) {
+    var script = document.createElement( 'script' );
+    script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
+    document.body.appendChild( script );
+  };
+  */
+}
 
 
 
@@ -216,12 +228,24 @@ app.post("/api/buildRequest", function (req, res) {
 	
 })
 
+app.post("/api/pdf", function (req, res) {
+  console.log("req", req.body.url);
+  
+})
+
 app.post("/api/request", function (req, res) {
-  console.log("req", req.url);
+  console.log("req", req.body.url);
+  
+
+  
+
   (async (req,res) => {
-     const browser =await puppeteer.launch({devtools: true});
+     const browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
     // const browser = await puppeteer.launch();
     const page = await browser.newPage();
+	page.setRequestInterception(true)
+	const client = await page.target().createCDPSession();
+
     // await page.goto('https://example.com');
     
 
@@ -231,7 +255,11 @@ app.post("/api/request", function (req, res) {
 	
 	const url= await req.body.url
 	
+	const load_image= await req.body.image
+	
 	const headers= await req.body.header
+	
+	var cookies_array=[]
 	
 	//console.log(headers)
 	
@@ -244,7 +272,7 @@ app.post("/api/request", function (req, res) {
 		var cookies=header['Cookie']||header['cookie']||''
 		
 		var cc=cookies.split(';')
-		var cookies_array=[]
+		
 		for(var i in cc) {
 			
 			var kv=cc[i].split('=')
@@ -253,35 +281,106 @@ app.post("/api/request", function (req, res) {
 				  'name'     : kv[0],   /* required property */
 				  'value'    : kv[1],  /* required property */
 				  //'domain'   : 'localhost',
-				 // 'domain'	: 'gitlab.fenqile.com',
+				 // 'domain'	: 'http://gitlab.fenqile.com',
+				  'url':url,
 				  'path'     : '/',                /* required property */
 				  'httponly' : true,
 				  //'secure'   : false,
 				  'expires'  : (new Date()).getTime() + (1000 * 60 * 60)   /* <-- expires in 1 hour */
 				});
-			
+
 			}
 		}
 		//console.log(cookies_array)
-		//await page.setCookie('Cookie',cookies_array)
+		//page.setCookie(...cookies_array)
+		//for(var i in cookies_array) {
+			//await page.setCookie(i)
+			//console.log(i)
+		//	await client.send('Network.setCookie',cookies_array[i]);
+		//}
+			//const setCookie = await client.send ( 'Network.setCookie',cookies_array);
 	} catch(e) {
 		
 		console.log("xxxxxxxxxxxxx",e)
 	}
   
-   // page.on('request', interceptedRequest => {
-   //   if (interceptedRequest.resourceType()=='script'){
-   //        console.log("js",interceptedRequest.url())
-   //        interceptedRequest.continue();
-   //    } else {
-   //    interceptedRequest.abort()
-   //    }
-   //  });
+   page.on('request', request => {
+	  // request.headers(header)
+	  
+	  
+	  
+	  
+	  if(request.resourceType()=='image' && load_image!='1'){
+		  
+		 // request.abort()
+	  }
+	   
+	  //console.log( request.url(),"\t",  request.resourceType())
+	  
+	  
+	  if (header['Host']) {
+		  var host=header['Host']
+		  var r=request.url()
+		  var cookie={}
+		  var keys=['Accept','Accept-Language','Connection','Content-Type','Cookie','Host','Origin','Referer','User-Agent']
+		  
+		  keys.map(function(key){
+			  if(header[key]) {
+			  cookie[key]= header[key]
+			  }
+		  })
+		  
+		 // console.log(cookie)
+		  
+	      
+	
+		  if (r.indexOf(host)!=-1) {
+			  
+			    
+			  request.continue({
+				  'headers':cookie
+			  })
+					  
+		  } else {
+			   console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+			   request.continue()
+		  }
+		  
+	  } else {
+		  
+		  request.continue()
+					
+	  }
+
+   
+    });
+   
+   try {
 
     await page.goto(req.body.url);
 
     await page.addScriptTag({url: "http://127.0.0.1:3000/jquery.js"});
-    await page.addScriptTag({url: "http://127.0.0.1:3000/util.js"});
+    await page.addScriptTag({url: "http://127.0.0.1:3000/autil.js"});
+	
+	
+	page.evaluateOnNewDocument(function(){
+		
+		
+	function loadScript(url) {
+		var script = document.createElement( 'script' );
+		script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
+		document.body.appendChild( script );
+		console.log(url)
+	  };
+	  
+	window.onload=function(){
+		
+		loadScript('http://127.0.0.1:3000/jquery.js')
+		loadScript('http://127.0.0.1:3000/autil.js')
+	
+	}
+		
+	})
 
 
 
@@ -293,8 +392,20 @@ app.post("/api/request", function (req, res) {
     // await console.log(message)
 
     await res.send(JSON.stringify(message))
+	
+	if (req.body.posturl) {
+		axios.post(req.body.posturl,{'data':JSON.stringify(message)})
+	}
+	
+	//console.log(await page.cookies())
+	
+   } catch(e) {
+		
+		console.log("abcxxx",e)
+	}
+   
 
-    console.log(message)
+    //console.log(message)
     // await page.screenshot({path: './public/example.png'});
 
   //  await browser.close();
