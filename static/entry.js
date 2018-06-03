@@ -17,6 +17,19 @@ function loadScript(url) {
 }
 
 
+function load_js(){
+	var jss=[]
+	var files=['jquery.js','autil.js']
+	files.map(function(file){
+		var js=fs.readFileSync(file,'utf-8');
+		
+		jss.push(js)
+		
+	})
+	return jss.join("\n")
+}
+
+
 
 function hereDoc(f) {
     return f.toString().replace(/^[^\/]+\/\*!?/, '').replace(/\*\/[^\/]+$/, '')
@@ -259,6 +272,10 @@ app.post("/api/request", function (req, res) {
 	
 	const headers= await req.body.header
 	
+	const jss=await load_js()
+	
+	const postData= await req.body.body
+	
 	var cookies_array=[]
 	
 	//console.log(headers)
@@ -312,10 +329,16 @@ app.post("/api/request", function (req, res) {
 	  
 	  if(request.resourceType()=='image' && load_image!='1'){
 		  
-		 // request.abort()
+		  request.abort()
+		  return
 	  }
 	   
 	  //console.log( request.url(),"\t",  request.resourceType())
+	  
+	  
+	 // console.log(request.postData())
+	  
+
 	  
 	  
 	  if (header['Host']) {
@@ -329,16 +352,16 @@ app.post("/api/request", function (req, res) {
 			  cookie[key]= header[key]
 			  }
 		  })
-		  
-		 // console.log(cookie)
-		  
-	      
+
 	
 		  if (r.indexOf(host)!=-1) {
 			  
-			    
+			  
+			  //console.log('beijing',postData)
+			 
 			  request.continue({
-				  'headers':cookie
+				  'headers':cookie,
+				 // 'postData':postData
 			  })
 					  
 		  } else {
@@ -359,31 +382,42 @@ app.post("/api/request", function (req, res) {
 
     await page.goto(req.body.url);
 	
-	function load_js(){
 
-		['jquery.js','autil.js'].map(function(file){
-			var js=fs.readFileSync(file,'utf-8');
-			page.evaluate(js)
-			console.log(js)
-		})
-	}
 	
-	load_js()
+	await page.evaluate(jss)
 	
 	
 	
 	page.evaluateOnNewDocument(function(){
 		
-		load_js()
+		
+	function loadScript(url) {
+		var script = document.createElement( 'script' );
+		script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
+		document.body.appendChild( script );
+		console.log(url)
+	  };
+	  
+	window.onload=function(){
+		
+		loadScript('http://127.0.0.1:3000/jquery.js')
+		loadScript('http://127.0.0.1:3000/autil.js')
+	
+	}
 		
 	})
 
+    var message=''
+	if(jscode.trim()=='') {
+		message=page.content()
+	} else {
 
+		message = await page.evaluate(function (jscode){
 
-    const message = await page.evaluate(function (jscode){
-
-            return jscode
-    }(jscode));
+				return jscode
+		}(jscode));
+	
+	}
 
     // await console.log(message)
 
