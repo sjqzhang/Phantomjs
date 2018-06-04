@@ -12,21 +12,20 @@ if($('div[role=columnheader]').length>0){
 ```
  
 ```
+var crawler= async()=>{
+  //var js=await loadjs('jquery.js,autil.js');eval(js);
+  //var $j=jQuery.noConflict();
+  var js=await loadjs('autil.js');eval(js);
+  await $('#exec_btn').trigger('click')
+ 
 
-var job= async()=>{
-
-  await sleep(1000)
-
- $('#exec_btn').trigger('click')
-  $('#kw').val('es6')
- // $('form').submit()
-
-await sleep(1000)
+ 
+  await sleep(500)
 
 
-  return href_data('.project-repo-buttons')
+  return $('.table').text()
 
 }
 
-job()
+crawler()
 ```
