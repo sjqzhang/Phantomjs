@@ -8,7 +8,7 @@ var fs = require('fs');
 const crypto = require('crypto');
 
 
-
+var GFiles={}
 
 function hereDoc(f) {
     return f.toString().replace(/^[^\/]+\/\*!?/, '').replace(/\*\/[^\/]+$/, '')
@@ -50,16 +50,24 @@ function loadJs(filename){
 	} 
 	files.map(function(file){
 		if(file.startWith('http:')||file.startWith('https:')){
-			(async (jss)=>{
-				await axios.get(file).then(function(js){
-					jss.push(js)
-				})
-				await sleep(1000)
-			})(jss)
+			if(GFiles[file]){
+				jss.push(GFiles[file])
+			} else {
+				(async (jss)=>{
+					await axios.get(file).then(function(js){
+						//jss.push(js)
+						if(js.data){
+							GFiles[file]=js.data
+						}
+					})
+					
+				})(jss)
+			}
 			
 			 
 		} else {
 			var js=fs.readFileSync(file,'utf-8');
+			//GFiles[file]=js
 			jss.push(js)
 		}
 	})
@@ -264,9 +272,14 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(express.static(path.join(__dirname, '.')))
 
-//const browser =async ()=> await puppeteer.launch();
+//const browser =(async ()=> await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true}))();
 
 //console.log(browser)
+
+
+const GMap={}
+
+GMap['browser']=null
 
 
 
@@ -292,21 +305,57 @@ app.post("/api/request", function (req, res) {
   
 
   (async (req,res) => {
-    const browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
-    // const browser = await puppeteer.launch();
+	  
+	  console.log(GMap)
+	 
+	is_debug= req.body.debug=="1"?true:false
+	is_restart= req.body.debug=="1"?true:false
+	
+	console.log('is_debug',is_debug)
+	
+	is_debug=true
+	
+	if(is_restart){
+		GMap['browser']==null
+	}
+	
+	if(GMap["browser"]==null){
+		browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
+		GMap["browser"]=await browser
+	} else {
+		browser=await GMap['browser']
+	}
+	
+	/*
+	if(is_debug){
+		 browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
+	} else {
+		
+		
+		 browser =await puppeteer.launch({ignoreHTTPSErrors:true});
+		
+	}
+	*/
+    //const browser = await puppeteer.launch();
     const page = await browser.newPage();
 	page.setRequestInterception(true)
 	const client = await page.target().createCDPSession();
 	
 	
 	await page.exposeFunction('md5', text =>
-    crypto.createHash('md5').update(text).digest('hex')
+		crypto.createHash('md5').update(text).digest('hex')
 	);
 	
-	await page.exposeFunction('loadjs', (filename) => {
-		return loadJs(filename)
-	}
-	);
+	pages=await browser.pages()
+	await pages.forEach(function(page){
+		 page.exposeFunction('loadjs', (filename) => {
+				return loadJs(filename)
+			}
+		)
+	})
+	
+	
+	
 
     // await page.goto('https://example.com');
     
@@ -321,7 +370,7 @@ app.post("/api/request", function (req, res) {
 	
 	const headers= await req.body.header
 	
-	const postData= await req.body.body
+	const post_data= await req.body.body
 	
 	var cookies_array=[]
 	
@@ -367,6 +416,29 @@ app.post("/api/request", function (req, res) {
 		
 		console.log("xxxxxxxxxxxxx",e)
 	}
+	
+	
+	await browser.on('targetcreated',function(target){
+		
+		//
+		
+		(async (browser)=>{
+			console.log('xxxxxxxxxx')
+			var page=await target.page()
+			page.exposeFunction('loadjs', (filename) => {
+					return loadJs(filename)
+				})			
+		})()
+		
+		
+
+	})
+	
+	await browser.on('disconnected',function(){
+		
+		GMap['browser']=null
+		
+	})
   
    page.on('request', request => {
 
@@ -376,12 +448,24 @@ app.post("/api/request", function (req, res) {
 		
 	  }
 	  
+	  var options={}
+	  
 	  var ignores=['media','eventsource','other']
 	  for(var i in ignores){
 		if(request.resourceType()==ignores[i]) {
 			request.abort()
 		}
 	  }
+	  
+	  
+	  if(post_data.trim()!=''){
+		 options["postData"]=post_data
+		 options["method"]='POST' 
+		 options["headers"]=header 
+	  }
+	
+	  
+	  console.log("options",options)
 
 	  var cookie=request.headers()
 	  
@@ -390,9 +474,14 @@ app.post("/api/request", function (req, res) {
 		  if (header['User-Agent']){
 			 cookie['User-Agent']=header['User-Agent']
 		  }
-		  request.continue({
-					  'headers':cookie,
-		  })
+		  if(post_data.trim()==''){
+			options['headers']=cookie  
+		  }
+		  
+		  
+		  request.continue(options)
+	  } else {
+		  request.continue(options)
 	  }
 	  
 
@@ -473,7 +562,7 @@ app.post("/api/request", function (req, res) {
 
     var message=''
 	if(jscode.trim()=='') {
-		message=page.content()
+		message= await page.content()
 	} else {
 
 		message = await page.evaluate(function (jscode){
@@ -483,7 +572,7 @@ app.post("/api/request", function (req, res) {
 	
 	}
 
-    // await console.log(message)
+    await console.log(message)
 
     await res.send(JSON.stringify(message))
 	
@@ -497,6 +586,8 @@ app.post("/api/request", function (req, res) {
 		
 		console.log("abcxxx",e)
 	}
+	
+	page.close()
    
 
     //console.log(message)
