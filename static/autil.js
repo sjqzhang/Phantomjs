@@ -1,11 +1,27 @@
 
-var $j=jQuery.noConflict(); 
 
+function hereDoc(f) {
+    return f.toString().replace(/^[^\/]+\/\*!?/, '').replace(/\*\/[^\/]+$/, '')
+}
 String.prototype.trim=function()
 {
      return this.replace(/(^\s*)|(\s*$)/g,'');
 }
 
+String.prototype.trimScript=function()
+{
+     return this.replace(/\/\*[\s\S]*?\*\/|^[\/\/][\s\S]*?\n|([\s\t]+\/\/[\s\S]*?\n)/g,"\n");
+}
+
+String.prototype.startWith=function(str){     
+  var reg=new RegExp("^"+str);     
+  return reg.test(this);        
+}  
+
+String.prototype.endWith=function(str){     
+  var reg=new RegExp(str+"$");     
+  return reg.test(this);        
+}
 function table_data(selector) {
 	var data = []
 	jQuery('table tr', jQuery(selector)).each(function() {
@@ -212,7 +228,7 @@ function transaleurl(url) {
 
 //transaleurl()
 
-/*
+
 function waitFor(testFx, onReady, timeOutMillis) {
     var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
         start = new Date().getTime(),
@@ -235,7 +251,7 @@ function waitFor(testFx, onReady, timeOutMillis) {
             }
         }, 250); //< repeat check every 250ms
 };
-*/
+
 
 var sleep = (time)=>{
     return new Promise((resolve,reject)=>{
