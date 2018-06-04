@@ -4,30 +4,9 @@ const path = require('path')
 const bodyParser  = require("body-parser");
 const puppeteer = require('puppeteer');
 const axios = require('axios');
+var fs = require('fs');
+const crypto = require('crypto');
 
-function init(){
-	/*
-	
-function loadScript(url) {
-    var script = document.createElement( 'script' );
-    script.setAttribute( 'src', url+'?'+'time='+Date.parse(new Date()));  
-    document.body.appendChild( script );
-  };
-  */
-}
-
-
-function load_js(){
-	var jss=[]
-	var files=['jquery.js','autil.js']
-	files.map(function(file){
-		var js=fs.readFileSync(file,'utf-8');
-		
-		jss.push(js)
-		
-	})
-	return jss.join("\n")
-}
 
 
 
@@ -38,6 +17,64 @@ String.prototype.trim=function()
 {
      return this.replace(/(^\s*)|(\s*$)/g,'');
 }
+
+String.prototype.trimScript=function()
+{
+     return this.replace(/\/\*[\s\S]*?\*\/|^[\/\/][\s\S]*?\n|([\s\t]+\/\/[\s\S]*?\n)/g,"\n");
+}
+
+String.prototype.startWith=function(str){     
+  var reg=new RegExp("^"+str);     
+  return reg.test(this);        
+}  
+
+String.prototype.endWith=function(str){     
+  var reg=new RegExp(str+"$");     
+  return reg.test(this);        
+}
+
+var sleep = (time)=>{
+    return new Promise((resolve,reject)=>{
+        setTimeout(()=>{
+            resolve('ok');
+            reject('err');
+        },time)
+    })
+};
+
+function loadJs(filename){
+	var jss=[]
+	var files=['jquery.js','autil.js']
+	if(filename){
+		files=filename.split(',')
+	} 
+	files.map(function(file){
+		if(file.startWith('http:')||file.startWith('https:')){
+			(async (jss)=>{
+				await axios.get(file).then(function(js){
+					jss.push(js)
+				})
+				await sleep(1000)
+			})(jss)
+			
+			 
+		} else {
+			var js=fs.readFileSync(file,'utf-8');
+			jss.push(js)
+		}
+	})
+	return jss.join("\n")
+}
+
+const jss=loadJs().trimScript()
+
+fs.writeFileSync('js.txt', jss)
+
+eval(jss)
+
+
+
+
 
 function isEmpty(e) {
     var t;
@@ -203,7 +240,7 @@ function waitFor(testFx, onReady, onTimeout, timeOutMillis) {
     250)
 };
 
-var fs = require('fs');
+
 function get_file_content(filename) {
     var content = fs.read(filename);
     return content;
@@ -227,7 +264,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(express.static(path.join(__dirname, '.')))
 
-// browser = puppeteer.launch();
+//const browser =async ()=> await puppeteer.launch();
+
+//console.log(browser)
 
 
 
@@ -253,11 +292,21 @@ app.post("/api/request", function (req, res) {
   
 
   (async (req,res) => {
-     const browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
+    const browser =await puppeteer.launch({devtools: true,ignoreHTTPSErrors:true});
     // const browser = await puppeteer.launch();
     const page = await browser.newPage();
 	page.setRequestInterception(true)
 	const client = await page.target().createCDPSession();
+	
+	
+	await page.exposeFunction('md5', text =>
+    crypto.createHash('md5').update(text).digest('hex')
+	);
+	
+	await page.exposeFunction('loadjs', (filename) => {
+		return loadJs(filename)
+	}
+	);
 
     // await page.goto('https://example.com');
     
@@ -271,8 +320,6 @@ app.post("/api/request", function (req, res) {
 	const load_image= await req.body.image
 	
 	const headers= await req.body.header
-	
-	const jss=await load_js()
 	
 	const postData= await req.body.body
 	
@@ -322,24 +369,34 @@ app.post("/api/request", function (req, res) {
 	}
   
    page.on('request', request => {
-	  // request.headers(header)
-	  
-	  
-	  
-	  
+
 	  if(request.resourceType()=='image' && load_image!='1'){
 		  
-		  request.abort()
-		  return
+		request.abort()
+		
 	  }
-	   
-	  //console.log( request.url(),"\t",  request.resourceType())
 	  
+	  var ignores=['media','eventsource','other']
+	  for(var i in ignores){
+		if(request.resourceType()==ignores[i]) {
+			request.abort()
+		}
+	  }
+
+	  var cookie=request.headers()
 	  
-	 // console.log(request.postData())
+	  if(header['Cookie']){
+		  cookie['Cookie']=header['Cookie']
+		  if (header['User-Agent']){
+			 cookie['User-Agent']=header['User-Agent']
+		  }
+		  request.continue({
+					  'headers':cookie,
+		  })
+	  }
 	  
 
-	  
+	  /*
 	  
 	  if (header['Host']) {
 		  var host=header['Host']
@@ -360,8 +417,7 @@ app.post("/api/request", function (req, res) {
 			  //console.log('beijing',postData)
 			 
 			  request.continue({
-				  'headers':cookie,
-				 // 'postData':postData
+				  'headers':header,
 			  })
 					  
 		  } else {
@@ -374,6 +430,8 @@ app.post("/api/request", function (req, res) {
 		  request.continue()
 					
 	  }
+	  */
+	  
 
    
     });
@@ -384,12 +442,17 @@ app.post("/api/request", function (req, res) {
 	
 
 	
-	await page.evaluate(jss)
-	
+	//await page.evaluate(jss)
 	
 	
 	page.evaluateOnNewDocument(function(){
-		
+	
+	eval(jss)
+	
+	},jss)
+	
+	 /*
+	page.evaluateOnNewDocument(function(){
 		
 	function loadScript(url) {
 		var script = document.createElement( 'script' );
@@ -406,6 +469,7 @@ app.post("/api/request", function (req, res) {
 	}
 		
 	})
+	*/
 
     var message=''
 	if(jscode.trim()=='') {
